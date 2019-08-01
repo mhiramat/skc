@@ -33,6 +33,8 @@ int main(int argc, char **argv)
 		return ret;
 	buf[ret] = '\0';
 
+	close(fd);
+
 	ret = skc_parse(buf, ret);
 
 	printf("parsed : %d\n", ret);
