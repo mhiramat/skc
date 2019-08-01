@@ -1,67 +1,23 @@
-/* 
- * Structure Kernel Commandline 
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Structure Kernel Commandline
  * Masami Hiramatsu <mhiramat@kernel.org>
  */
+#include "compat.h"
+#include "skc.h"
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <stdbool.h>
+/*
+ * Structured Kernel Commandline (SKC) is given as an ascii text on memory.
+ * skc_parser() parses the text to build a simple tree. Each tree node is
+ * simply whether key or value. A key node may have a next key node or/and
+ * a child node (both key and value). A value node may have a next value
+ * node (for array).
+ */
 
-typedef unsigned short u16;
-typedef unsigned int   u32;
-#define BUG_ON(cond)	\
-	if (cond) {						\
-		printf("Internal error(%s:%d, %s): %s\n",	\
-			__FILE__, __LINE__, __func__, #cond );	\
-		exit(1);					\
-	}
-#define printk	printf
-
-char *skip_spaces(const char *str)
-{
-	while (isspace(*str))
-		++str;
-	return (char *)str;
-}
-
-char *strim(char *s)
-{
-	size_t size;
-	char *end;
-
-	size = strlen(s);
-	if (!size)
-		return s;
-
-	end = s + size - 1;
-	while (end >= s && isspace(*end))
-		end--;
-	*(end + 1) = '\0';
-
-	return skip_spaces(s);
-}
-
-struct skc_node {
-	u16 next;
-	u16 child;
-	u32 data;
-} __attribute__ ((__packed__));
-
-#define SKC_KEY		0
-#define SKC_VALUE	(1 << 31)
-
-#define SKC_NODE_MAX	512
 struct skc_node skc_nodes[SKC_NODE_MAX];
 int skc_node_num;
 char *skc_data;
-int skc_data_size;
+size_t skc_data_size;
 
 static int __skc_parse_error(const char *func, const char *str, const char *p)
 {
@@ -80,16 +36,6 @@ static int __skc_parse_error(const char *func, const char *str, const char *p)
 }
 
 #define skc_parse_error(m, p)	__skc_parse_error(__func__, #m, p)
-
-bool skc_node_is_value(struct skc_node *node)
-{
-	return !!(node->data & SKC_VALUE);
-}
-
-bool skc_node_is_key(struct skc_node *node)
-{
-	return !(node->data & SKC_VALUE);
-}
 
 int skc_node_index(struct skc_node *node)
 {
@@ -381,7 +327,7 @@ static int skc_verify_tree(void)
 	return 0;
 }
 
-int skc_parse(char *buf, int size)
+int skc_parse(char *buf, size_t size)
 {
 	char *p, *q;
 	int ret, c;
@@ -437,7 +383,7 @@ void skc_dump(void)
 	}
 }
 
-void skc_show_array(struct skc_node *node)
+static void skc_show_array(struct skc_node *node)
 {
 	printk("\"%s\"", skc_node_get_data(node));
 	while (node->next) {
@@ -489,18 +435,16 @@ void skc_show_tree(void)
 	}
 }
 
-#define SKC_MAX_KEYLEN 256
-
 void skc_show_kvlist(void)
 {
 	struct skc_node *node;
-	char buf[SKC_MAX_KEYLEN];
+	char buf[SKC_KEYLEN_MAX];
 	int i;
 
 	for (i = 0; i < skc_node_num; i++) {
 		node = skc_nodes + i;
 		if (skc_node_is_value(node)) {
-			skc_node_compose_key(node, buf, SKC_MAX_KEYLEN);
+			skc_node_compose_key(node, buf, SKC_KEYLEN_MAX);
 			printk("%s = ", buf);
 			if (skc_nodes[i].next)
 				skc_show_array(skc_nodes + i);
