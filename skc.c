@@ -611,14 +611,18 @@ void skc_dump(void)
 	}
 }
 
-static void skc_show_array(struct skc_node *node)
+static int skc_show_array(struct skc_node *node)
 {
+	int i = 0;
+
 	printk("\"%s\"", skc_node_get_data(node));
 	while (node->next) {
 		node = skc_node_get_next(node);
 		printk(", \"%s\"", skc_node_get_data(node));
+		i++;
 	}
 	printk(";\n");
+	return i;
 }
 
 void skc_show_tree(void)
@@ -675,7 +679,7 @@ void skc_show_kvlist(void)
 			skc_node_compose_key(node, buf, SKC_KEYLEN_MAX);
 			printk("%s = ", buf);
 			if (skc_nodes[i].next)
-				skc_show_array(skc_nodes + i);
+				i += skc_show_array(skc_nodes + i);
 			else
 				printk("\"%s\";\n", skc_node_get_data(node));
 		}
