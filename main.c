@@ -70,8 +70,10 @@ int main(int argc, char **argv)
 	}
 
 	ret = skc_parse(buf, ret);
-
-	printf("parsed : %d\n", ret);
+	if (ret < 0) {
+		printf("Failed to parse %s: %d\n", path, ret);
+		return ret;
+	}
 
 	if (query_key) {
 		const char *val = skc_get_value(query_key);
