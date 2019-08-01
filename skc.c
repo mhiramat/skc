@@ -8,7 +8,7 @@
 
 /*
  * Structured Kernel Commandline (SKC) is given as an ascii text on memory.
- * skc_parser() parses the text to build a simple tree. Each tree node is
+ * skc_parse() parses the text to build a simple tree. Each tree node is
  * simply whether key or value. A key node may have a next key node or/and
  * a child node (both key and value). A value node may have a next value
  * node (for array).
@@ -453,42 +453,3 @@ void skc_show_kvlist(void)
 		}
 	}
 }
-
-int main(int argc, char **argv)
-{
-	struct stat stat;
-	int fd, ret;
-	char *buf;
-
-	if (argc != 2)
-		return -1;
-
-	fd = open(argv[1], O_RDONLY);
-	if (fd < 0)
-		return fd;
-	ret = fstat(fd, &stat);
-	if (ret < 0)
-		return ret;
-	
-	buf = malloc(stat.st_size + 1);
-	if (!buf)
-		return -ENOMEM;
-
-	ret = read(fd, buf, stat.st_size);
-	if (ret < 0)
-		return ret;
-	buf[ret] = '\0';
-
-	ret = skc_parse(buf, ret);
-
-	printf("parsed : %d\n", ret);
-
-	skc_dump();
-	printf("\n=========================\n\n");
-	skc_show_tree();
-	printf("\n=========================\n\n");
-	skc_show_kvlist();
-
-	return 0;
-}
-

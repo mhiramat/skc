@@ -3,10 +3,6 @@
 /* Linux compatible definitions etc. */
 
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -23,14 +19,14 @@ typedef unsigned int   u32;
 	}
 #define printk	printf
 
-char *skip_spaces(const char *str)
+static inline char *skip_spaces(const char *str)
 {
 	while (isspace(*str))
 		++str;
 	return (char *)str;
 }
 
-char *strim(char *s)
+static inline char *strim(char *s)
 {
 	size_t size;
 	char *end;

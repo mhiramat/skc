@@ -1,2 +1,13 @@
-skc: skc.c
-	gcc skc.c -Wall -g -o skc
+CC = gcc
+CLFAGS = -I. -Wall -O2
+DEPENDS = compat.h skc.h
+OBJ = main.o skc.o
+
+%.o: %.c $(DEPENDS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+skc: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+clean:
+	rm -f $(OBJ) skc
