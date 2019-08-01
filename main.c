@@ -35,15 +35,35 @@ int load_skc_file(const char *path, char **buf)
 	return ret;
 }
 
+int usage(void)
+{
+	printf("Usage: skc [-q query_key] skc-file \n");
+	return -1;
+}
+
 int main(int argc, char **argv)
 {
+	char *path;
+	char *query_key = NULL;
 	char *buf;
-	int ret;
+	int ret, opt;
 
-	if (argc != 2)
-		return -1;
+	while ((opt = getopt(argc, argv, "q:")) != -1) {
+		switch (opt) {
+		case 'q':
+			query_key = strdup(optarg);
+			break;
+		default:
+			return usage();
+		}
+	}
 
-	ret = load_skc_file(argv[1], &buf);
+	if (optind >= argc) {
+		printf("Error: No .skc file is specified after options.\n");
+		return -2;
+	}
+
+	ret = load_skc_file(argv[optind], &buf);
 	if (ret < 0) {
 		printf("Failed to load %s : %d\n", argv[1], ret);
 		return ret;
@@ -53,11 +73,20 @@ int main(int argc, char **argv)
 
 	printf("parsed : %d\n", ret);
 
-	skc_dump();
-	printf("\n=========================\n\n");
-	skc_show_tree();
-	printf("\n=========================\n\n");
-	skc_show_kvlist();
+	if (query_key) {
+		const char *val = skc_get_value(query_key);
+		if (!val)
+			printf("No value for \"%s\" key\n", query_key);
+		else
+			printf("%s = \"%s\"\n", query_key, val);
+	} else {
+		printf("\n=========================\n\n");
+		skc_dump();
+		printf("\n=========================\n\n");
+		skc_show_tree();
+		printf("\n=========================\n\n");
+		skc_show_kvlist();
+	}
 
 	return 0;
 }
