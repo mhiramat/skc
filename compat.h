@@ -43,3 +43,10 @@ static inline char *strim(char *s)
 	return skip_spaces(s);
 }
 
+#define GFP_KERNEL	0
+
+static inline void *kzalloc(size_t size, int flags)
+{
+	return calloc(size, 1);
+}
+
