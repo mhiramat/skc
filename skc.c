@@ -105,9 +105,10 @@ static int copy_one_word(char *buf, const char *src, size_t size)
 		len = strlen(src);
 	else
 		len = p - src;
-	if (len >= size)
+	if (len + 1 >= size)
 		return -E2BIG;
 	strncpy(buf, src, len);
+	buf[len] = '\0';
 
 	return len;
 }
@@ -138,8 +139,11 @@ int skc_iter_unmatched_words(struct skc_iter *iter, int n,
 		}
 		ppnode = node;
 		pnode = iter->cur_val_key;
-		if (pnode == ppnode)
-			return m;	/* No more keys */
+		if (pnode == ppnode) {	/* No more keys */
+			if (m)
+				buf[-1] = '\0';
+			return m;
+		}
 
 		do {
 			node = pnode;
