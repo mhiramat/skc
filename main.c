@@ -43,7 +43,7 @@ int usage(void)
 
 int main(int argc, char **argv)
 {
-	char *path;
+	char *path = NULL;
 	char *query_key = NULL;
 	char *buf;
 	int ret, opt, mode = 'l';
@@ -69,9 +69,10 @@ int main(int argc, char **argv)
 		return -2;
 	}
 
-	ret = load_skc_file(argv[optind], &buf);
+	path = argv[optind];
+	ret = load_skc_file(path, &buf);
 	if (ret < 0) {
-		printf("Failed to load %s : %d\n", argv[1], ret);
+		printf("Failed to load %s : %d\n", path, ret);
 		return ret;
 	}
 
