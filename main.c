@@ -37,7 +37,7 @@ int load_skc_file(const char *path, char **buf)
 
 int usage(void)
 {
-	printf("Usage: skc [-q query_key|-t|-d|-l] skc-file \n");
+	printf("Usage: skc [-w NUM][-q KEY|-t|-d|-l] skc-file \n");
 	return -1;
 }
 
@@ -47,9 +47,13 @@ int main(int argc, char **argv)
 	char *query_key = NULL;
 	char *buf;
 	int ret, opt, mode = 'l';
+	int words = -1;
 
-	while ((opt = getopt(argc, argv, "q:tdl")) != -1) {
+	while ((opt = getopt(argc, argv, "w:q:tdl")) != -1) {
 		switch (opt) {
+		case 'w':
+			words = atoi(optarg);
+			break;
 		case 'q':
 			query_key = strdup(optarg);
 			break;
@@ -82,15 +86,32 @@ int main(int argc, char **argv)
 		return ret;
 	}
 
-	if (query_key) {
+	/* Key - Value query example */
+	if (query_key && words < 0) {
 		const char *val = skc_get_value(query_key);
+
 		if (!val)
 			printf("No value for \"%s\" key\n", query_key);
 		else
 			printf("%s = \"%s\"\n", query_key, val);
 		return 0;
 	}
+	/* Iterator example */
+	if (query_key && words >= 0) {
+		char buf[SKC_KEYLEN_MAX];
+		const char *val;
+		struct skc_iter iter;
 
+		skc_for_each_value(&iter, query_key, val) {
+			if (skc_iter_unmatched_words(&iter, words, buf, SKC_KEYLEN_MAX) < 0)
+				printf("Error: No matched words?\n");
+			else
+				printf("\"%s\"\n", buf);
+		}
+		return 0;
+	}
+
+	/* Dumping SKC examples */
 	switch (mode) {
 	case 't':
 		skc_show_tree();
