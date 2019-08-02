@@ -88,12 +88,24 @@ int main(int argc, char **argv)
 
 	/* Key - Value query example */
 	if (query_key && words < 0) {
-		const char *val = skc_get_value(query_key);
+		struct skc_node *vnode;
+		const char *val = skc_get_value(query_key, &vnode);
 
-		if (!val)
+		if (!val) {
 			printf("No value for \"%s\" key\n", query_key);
-		else
-			printf("%s = \"%s\"\n", query_key, val);
+			return -ENOENT;
+		}
+		printf("%s = ", query_key);
+		if (!vnode || !vnode->next)
+			printf("\"%s\"\n", val);
+		else {
+			/* Array node */
+			while (vnode->next) {
+				printf("\"%s\", ", skc_node_get_data(vnode));
+				vnode = skc_node_get_next(vnode);
+			}
+			printf("\"%s\"\n", skc_node_get_data(vnode));
+		}
 		return 0;
 	}
 	/* Iterator example */

@@ -312,7 +312,7 @@ static bool skc_node_match_prefix(struct skc_node *node, const char **prefix)
 }
 
 /* key-only data returns "", no key matched return NULL  */
-const char *skc_get_value(const char *key)
+const char *skc_get_value(const char *key, struct skc_node **value)
 {
 	struct skc_node *node = skc_nodes;
 	const char *p = key;
@@ -323,8 +323,11 @@ const char *skc_get_value(const char *key)
 		else {
 			node = skc_node_get_child(node);
 			if (*p == '\0')	{	/* Matching complete */
-				if (node && skc_node_is_value(node))
+				if (node && skc_node_is_value(node)) {
+					*value = node;
 					return skc_node_get_data(node);
+				}
+				*value = NULL;
 				return !node ? "" : NULL;
 			}
 		}
