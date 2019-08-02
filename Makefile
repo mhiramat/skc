@@ -1,5 +1,5 @@
 CC = gcc
-CLFAGS = -I. -Wall -O2 -g
+CFLAGS = -I. -Wall -O2 -g
 DEPENDS = compat.h skc.h
 OBJ = main.o skc.o
 
