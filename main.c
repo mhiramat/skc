@@ -37,7 +37,7 @@ int load_skc_file(const char *path, char **buf)
 
 int usage(void)
 {
-	printf("Usage: skc [-q query_key] skc-file \n");
+	printf("Usage: skc [-q query_key|-t|-d|-l] skc-file \n");
 	return -1;
 }
 
@@ -46,12 +46,18 @@ int main(int argc, char **argv)
 	char *path;
 	char *query_key = NULL;
 	char *buf;
-	int ret, opt;
+	int ret, opt, mode = 'l';
 
-	while ((opt = getopt(argc, argv, "q:")) != -1) {
+	while ((opt = getopt(argc, argv, "q:tdl")) != -1) {
 		switch (opt) {
 		case 'q':
 			query_key = strdup(optarg);
+			break;
+		/* Output mode */
+		case 't':
+		case 'd':
+		case 'l':
+			mode = opt;
 			break;
 		default:
 			return usage();
@@ -81,13 +87,20 @@ int main(int argc, char **argv)
 			printf("No value for \"%s\" key\n", query_key);
 		else
 			printf("%s = \"%s\"\n", query_key, val);
-	} else {
-		printf("\n=========================\n\n");
-		skc_dump();
-		printf("\n=========================\n\n");
+		return 0;
+	}
+
+	switch (mode) {
+	case 't':
 		skc_show_tree();
-		printf("\n=========================\n\n");
+		break;
+	case 'd':
+		skc_dump();
+		break;
+	case 'l':
+	default:
 		skc_show_kvlist();
+		break;
 	}
 
 	return 0;
