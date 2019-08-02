@@ -172,12 +172,16 @@ static bool skc_iter_match_prefix(struct skc_iter *iter)
 	if (*p != '.' && *p != '\0')
 		return false;
 
-	if (iter->prefix[len] == '.')
+	switch (iter->prefix[iter->prefix_offs + len]) {
+	case '.':
 		iter->prefix_offs += len + 1;
-	else if (iter->prefix[len] == '\0')
+		break;
+	case '\0':
 		iter->prefix_offs += len;
-	else
+		break;
+	default:
 		return false;
+	}
 
 	iter->key_offs = len;
 	if (*p == '.')
