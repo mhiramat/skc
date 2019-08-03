@@ -18,6 +18,10 @@ typedef unsigned int   u32;
 		exit(1);					\
 	}
 #define printk	printf
+#define pr_error printf
+#define pr_warn	printf
+#define pr_info	printf
+#define pr_debug printf
 
 static inline char *skip_spaces(const char *str)
 {
