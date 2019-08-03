@@ -3,6 +3,7 @@
  * Structure Kernel Commandline
  * Masami Hiramatsu <mhiramat@kernel.org>
  */
+
 #include "compat.h"
 #include "skc.h"
 
@@ -19,7 +20,7 @@ int skc_node_num;
 char *skc_data;
 size_t skc_data_size;
 
-static int __skc_parse_error(const char *func, const char *str, const char *p)
+static int skc_parse_error(const char *msg, const char *p)
 {
 	int line = 0, col = 0;
 	int i, pos = p - skc_data;
@@ -30,12 +31,9 @@ static int __skc_parse_error(const char *func, const char *str, const char *p)
 			col = pos - i;
 		}
 	}
-	printk("Parse error @%s (data: %d:%d): %s\n", func,
-		line + 1, col, str);
+	printk("Parse error at line %d, col %d: %s\n", line + 1, col, msg);
 	return -EINVAL;
 }
-
-#define skc_parse_error(m, p)	__skc_parse_error(__func__, #m, p)
 
 int skc_node_index(struct skc_node *node)
 {
@@ -409,17 +407,17 @@ static int __skc_parse_value(char **__v, char **__n)
 		v++;
 		p = find_ending_quote(v);
 		if (!p)
-			return skc_parse_error(NOENDQUO, v);
+			return skc_parse_error("No closing quotation", v);
 		*p++ = '\0';
 		p = skip_spaces(p);
 		if (*p != ',' && *p != ';')
-			return skc_parse_error(NODELIM, v);
+			return skc_parse_error("No delimiter for value", v);
 		c = *p;
 		*p++ = '\0';
 	} else {
 		p = strpbrk(v, ",;");
 		if (!p)
-			return skc_parse_error(NODELIM, v);
+			return skc_parse_error("No delimiter for value", v);
 		c = *p;
 		*p++ = '\0';
 		v = strim(v);
@@ -459,7 +457,7 @@ static int skc_parse_kv(char **k, char *v)
 
 	*k = strim(*k);
 	if (!skc_valid_key(*k))
-		return skc_parse_error(INVKEY, *k);
+		return skc_parse_error("Invalid key", *k);
 
 	knode = skc_add_node(*k, SKC_KEY);
 	if (!knode)
@@ -491,7 +489,7 @@ static int skc_parse_key(char **k, char *n)
 	if (**k == '\0') /* Empty item */
 		goto skipped;
 	if (!skc_valid_key(*k))
-		return skc_parse_error(INVKEY, *k);
+		return skc_parse_error("Invalid key", *k);
 	if (!skc_add_node(*k, SKC_KEY))
 		return -ENOMEM;
 skipped:
@@ -506,7 +504,7 @@ static int skc_open_brace(char **k, char *n)
 
 	*k = strim(*k);
 	if (!skc_valid_key(*k))
-		return skc_parse_error(INVKEY, *k);
+		return skc_parse_error("Invalid key", *k);
 	node = skc_add_node(*k, SKC_KEY);
 	if (!node)
 		return -ENOMEM;
@@ -524,7 +522,7 @@ static int skc_close_brace(char **k, char *n)
 
 	node = skc_peek_node();
 	if (!node)
-		return skc_parse_error(UNEXPCLO, *k);
+		return skc_parse_error("Unexpected closing brace", *k);
 
 	if (skc_node_is_value(node)) {
 		node = skc_node_get_parent(node);
@@ -533,12 +531,12 @@ static int skc_close_brace(char **k, char *n)
 	while (node->next == 0) {
 		node = skc_node_get_parent(node);
 		if (!node)
-			return skc_parse_error(TOOMANYCLO, *k);
+			return skc_parse_error("Too many closing brace", *k);
 	}
 	node->next = 0;
 	node = skc_node_get_parent(node);
 	if (!node)
-		return skc_parse_error(UNEXPCLO, *k);
+		return skc_parse_error("Unexpected closing brace", *k);
 
 	node->next = skc_node_num;
 
@@ -554,7 +552,7 @@ static int skc_verify_tree(void)
 	for (i = 0; i < skc_node_num; i++) {
 		if (skc_nodes[i].next > skc_node_num) {
 			BUG_ON(skc_node_is_value(skc_nodes + i));
-			return skc_parse_error(NOBRACECLO,
+			return skc_parse_error("No closing brace",
 				skc_node_get_data(skc_nodes + i));
 		} else if (skc_nodes[i].next == skc_node_num) {
 			BUG_ON(top);
@@ -603,7 +601,7 @@ int skc_parse(char *buf, size_t size)
 	if (!q) {
 		p = skip_spaces(p);
 		if (*p != '\0')
-			return skc_parse_error(UNEXPSTR, p);
+			return skc_parse_error("No delimiter", p);
 	}
 
 	return skc_verify_tree();
