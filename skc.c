@@ -632,10 +632,9 @@ static int skc_show_array(struct skc_node *node)
 	int i = 0;
 
 	skc_array_for_each_value(node, val) {
-		printk(", \"%s\"", val);
+		printk("\"%s\"%s", val, node->next ? ", " : ";\n");
 		i++;
 	}
-	printk(";\n");
 	return i;
 }
 
