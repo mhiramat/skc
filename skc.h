@@ -46,7 +46,7 @@ int skc_node_compose_key(struct skc_node *node, char *buf, size_t size);
 const char *skc_get_value(const char *key, struct skc_node **value);
 
 /* SKC node initializer */
-int skc_parse(char *buf, size_t size);
+int skc_init(char *buf);
 
 /* Debug dump functions */
 void skc_dump(void);

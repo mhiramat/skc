@@ -566,13 +566,17 @@ static int skc_verify_tree(void)
 	return 0;
 }
 
-int skc_parse(char *buf, size_t size)
+/* Setup SKC internal tree */
+int skc_init(char *buf)
 {
 	char *p, *q;
 	int ret, c;
 
+	if (skc_data)
+		return -EBUSY;
+
 	skc_data = buf;
-	skc_data_size = size;
+	skc_data_size = strlen(buf);
 
 	p = buf;
 	do {

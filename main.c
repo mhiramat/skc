@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 		return ret;
 	}
 
-	ret = skc_parse(buf, ret);
+	ret = skc_init(buf);
 	if (ret < 0) {
 		printf("Failed to parse %s: %d\n", path, ret);
 		return ret;
