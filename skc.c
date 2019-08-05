@@ -17,10 +17,10 @@
  * node (for array).
  */
 
-struct skc_node skc_nodes[SKC_NODE_MAX];
-int skc_node_num;
-char *skc_data;
-size_t skc_data_size;
+static struct skc_node skc_nodes[SKC_NODE_MAX];
+static int skc_node_num;
+static char *skc_data;
+static size_t skc_data_size;
 
 static int skc_parse_error(const char *msg, const char *p)
 {
