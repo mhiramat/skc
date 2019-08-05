@@ -624,12 +624,11 @@ void skc_dump(void)
 
 static int skc_show_array(struct skc_node *node)
 {
+	const char *val;
 	int i = 0;
 
-	printk("\"%s\"", skc_node_get_data(node));
-	while (node->next) {
-		node = skc_node_get_next(node);
-		printk(", \"%s\"", skc_node_get_data(node));
+	skc_array_for_each_value(node, val) {
+		printk(", \"%s\"", val);
 		i++;
 	}
 	printk(";\n");

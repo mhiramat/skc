@@ -96,16 +96,12 @@ int main(int argc, char **argv)
 			return -ENOENT;
 		}
 		printf("%s = ", query_key);
-		if (!vnode || !vnode->next)
+		if (skc_node_is_array(vnode)) {
+			skc_array_for_each_value(vnode, val)
+				printf("\"%s\"%s", skc_node_get_data(vnode),
+					vnode->next ? ", " : "\n");
+		} else
 			printf("\"%s\"\n", val);
-		else {
-			/* Array node */
-			while (vnode->next) {
-				printf("\"%s\", ", skc_node_get_data(vnode));
-				vnode = skc_node_get_next(vnode);
-			}
-			printf("\"%s\"\n", skc_node_get_data(vnode));
-		}
 		return 0;
 	}
 	/* Iterator example */

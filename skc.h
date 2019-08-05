@@ -71,6 +71,16 @@ const char *skc_iter_next(struct skc_iter *iter);
 	for (value = skc_iter_start(iter, prefix); \
 	     value != NULL; value = skc_iter_next(iter))
 
+static inline bool skc_node_is_array(struct skc_node *node)
+{
+	return skc_node_is_value(node) && node->next != 0;
+}
+
+#define skc_array_for_each_value(anode, value)		\
+	for (value = skc_node_get_data(anode); anode != NULL ;	\
+	     anode = skc_node_get_next(anode),	\
+	     value = anode ? skc_node_get_data(anode) : NULL)
+
 /*
  * This returns current value node. Note that if the key has no value
  * (key-only node) returns NULL.
