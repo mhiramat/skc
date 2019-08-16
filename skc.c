@@ -6,8 +6,13 @@
 
 #define pr_fmt(fmt)    "skc: " fmt
 
-#include "compat.h"
-#include "skc.h"
+#include <linux/bug.h>
+#include <linux/ctype.h>
+#include <linux/errno.h>
+#include <linux/kernel.h>
+#include <linux/printk.h>
+#include <linux/skc.h>
+#include <linux/string.h>
 
 /*
  * Structured Kernel Commandline (SKC) is given as an ascii text on memory.
@@ -33,7 +38,7 @@ static int skc_parse_error(const char *msg, const char *p)
 			col = pos - i;
 		}
 	}
-	pr_error("Parse error at line %d, col %d: %s\n", line + 1, col, msg);
+	pr_err("Parse error at line %d, col %d: %s\n", line + 1, col, msg);
 	return -EINVAL;
 }
 
@@ -363,7 +368,7 @@ static struct skc_node *skc_push_node(char *data, u32 flag)
 {
 	struct skc_node *parent = skc_peek_node();
 	struct skc_node *node;
- 
+
 	BUG_ON(parent == NULL);
 
 	node = skc_add_node(data, flag);
@@ -610,7 +615,13 @@ int skc_init(char *buf)
 			return skc_parse_error("No delimiter", p);
 	}
 
-	return skc_verify_tree();
+	ret = skc_verify_tree();
+	if (!ret) {
+		pr_info("Structured kernel cmdline:\n");
+		skc_show_kvlist();
+	}
+
+	return ret;
 }
 
 /* Dump current skc */

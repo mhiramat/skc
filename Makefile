@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -I. -Wall -O2 -g
-DEPENDS = compat.h skc.h
+CFLAGS = -I./include -Wall -O2 -g
+DEPENDS = include/linux/skc.h
 OBJ = main.o skc.o
 
 %.o: %.c $(DEPENDS)

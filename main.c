@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "compat.h"
-#include "skc.h"
+#include <string.h>
+#include <errno.h>
+
+#include <linux/kernel.h>
+#include <linux/skc.h>
 
 /* Return the read size or -errno */
 int load_skc_file(const char *path, char **buf)
