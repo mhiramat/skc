@@ -11,4 +11,8 @@
 		exit(1);					\
 	}
 
+#define WARN_ON(cond)	\
+	((cond) ? printf("Internal warning(%s:%d, %s): %s\n",	\
+			__FILE__, __LINE__, __func__, #cond ) : 0)
+
 #endif

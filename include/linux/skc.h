@@ -6,11 +6,12 @@
 struct skc_node {
 	u16 next;
 	u16 child;
-	u32 data;
+	u16 parent;
+	u16 data;
 } __attribute__ ((__packed__));
 
 #define SKC_KEY		0
-#define SKC_VALUE	(1 << 31)
+#define SKC_VALUE	(1 << 15)
 
 #define SKC_NODE_MAX	512
 #define SKC_KEYLEN_MAX	256
