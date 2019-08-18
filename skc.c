@@ -434,15 +434,44 @@ static int skc_parse_array(char **__v)
 
 static int __skc_add_key(char *k)
 {
-	struct skc_node *node;
+	struct skc_node *node, *node2 = NULL;
 
 	if (!skc_valid_key(k))
 		return skc_parse_error("Invalid key", k);
-	node = skc_add_node(k, SKC_KEY);
-	if (!node)
-		return -ENOMEM;
-	node->child = node->next;
-	node->next = 0;
+
+	if (skc_node_num == 0)
+		goto new_node;
+
+	if (skc_cur_parent == SKC_NODE_MAX)
+		node = skc_nodes;
+	else
+		node = skc_node_get_child(skc_nodes + skc_cur_parent);
+	if (!strcmp(skc_node_get_data(node), k))
+		node2 = node;
+
+	while (node->next && node->next != skc_node_num) {
+		node = skc_node_get_next(node);
+		if (!strcmp(skc_node_get_data(node), k))
+			node2 = node;
+	}
+
+	if (!node2) {
+new_node:
+		node = skc_add_node(k, SKC_KEY);
+		if (!node)
+			return -ENOMEM;
+		node->child = skc_node_num;
+		node->next = 0;
+	} else {
+		node->next = 0;
+		node = node2;
+		if (node2->child) {
+			node2 = skc_node_get_child(node2);
+			while (node2->next && node2->next != skc_node_num)
+				node2 = skc_node_get_next(node2);
+			node2->next = skc_node_num;
+		}
+	}
 	skc_cur_parent = skc_node_index(node);
 
 	return 0;
