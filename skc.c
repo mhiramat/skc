@@ -432,31 +432,58 @@ static int skc_parse_array(char **__v)
 	return 0;
 }
 
+static int __skc_add_key(char *k)
+{
+	struct skc_node *node;
+
+	if (!skc_valid_key(k))
+		return skc_parse_error("Invalid key", k);
+	node = skc_add_node(k, SKC_KEY);
+	if (!node)
+		return -ENOMEM;
+	node->child = node->next;
+	node->next = 0;
+	skc_cur_parent = skc_node_index(node);
+
+	return 0;
+}
+
+static int __skc_parse_keys(char *k)
+{
+	char *p;
+	int ret;
+
+	k = strim(k);
+	while ((p = strchr(k, '.'))) {
+		*p++ = '\0';
+		ret = __skc_add_key(k);
+		if (ret)
+			return ret;
+		k = p;
+	}
+
+	return __skc_add_key(k);
+}
+
 static int skc_parse_kv(char **k, char *v)
 {
-	struct skc_node *node, *knode;
+	u16 prev_parent = skc_cur_parent;
+	u16 prev_node = skc_node_num;
+	struct skc_node *node;
 	char *next;
 	int c, ret;
 
-	*k = strim(*k);
-	if (!skc_valid_key(*k))
-		return skc_parse_error("Invalid key", *k);
-
-	knode = skc_add_node(*k, SKC_KEY);
-	if (!knode)
-		return -ENOMEM;
+	ret = __skc_parse_keys(*k);
+	if (ret)
+		return ret;
 
 	c = __skc_parse_value(&v, &next);
 	if (c < 0)
 		return c;
 
-	skc_cur_parent = skc_node_index(knode);
 	node = skc_add_node(v, SKC_VALUE);
 	if (!node)
 		return -ENOMEM;
-
-	knode->child = knode->next;
-	knode->next = skc_node_num;
 
 	if (c == ',') {	/* Array */
 		ret = skc_parse_array(&next);
@@ -465,8 +492,9 @@ static int skc_parse_kv(char **k, char *v)
 	} else	/* End */
 		node->next = 0;
 
-	knode->next = skc_node_num;
-	skc_cur_parent = knode->parent;
+	node = &skc_nodes[prev_node];
+	node->next = skc_node_num;
+	skc_cur_parent = prev_parent;
 
 	*k = next;
 
@@ -475,14 +503,22 @@ static int skc_parse_kv(char **k, char *v)
 
 static int skc_parse_key(char **k, char *n)
 {
-	*k = strim(*k);
+	u16 prev_parent = skc_cur_parent;
+	u16 prev_node = skc_node_num;
+	struct skc_node *node;
+	int ret;
 
+	*k = strim(*k);
 	if (**k == '\0') /* Empty item */
 		goto skipped;
-	if (!skc_valid_key(*k))
-		return skc_parse_error("Invalid key", *k);
-	if (!skc_add_node(*k, SKC_KEY))
-		return -ENOMEM;
+
+	ret = __skc_parse_keys(*k);
+	if (ret)
+		return ret;
+
+	node = &skc_nodes[prev_node];
+	node->next = skc_node_num;
+	skc_cur_parent = prev_parent;
 skipped:
 	*k = n;
 
@@ -491,18 +527,11 @@ skipped:
 
 static int skc_open_brace(char **k, char *n)
 {
-	struct skc_node *node;
+	int ret;
 
-	*k = strim(*k);
-	if (!skc_valid_key(*k))
-		return skc_parse_error("Invalid key", *k);
-	node = skc_add_node(*k, SKC_KEY);
-	if (!node)
-		return -ENOMEM;
-
-	node->child = skc_node_num;
-	node->next = 0;
-	skc_cur_parent = skc_node_index(node);
+	ret = __skc_parse_keys(*k);
+	if (ret)
+		return ret;
 
 	*k = n;
 
@@ -517,14 +546,14 @@ static int skc_close_brace(char **k, char *n)
 	if (**k != '\0')
 		return skc_parse_error("Unexpected key, maybe forgot ;?", *k);
 
-	if (skc_node_is_value(node))
+	while (node && node->parent != skc_cur_parent)
 		node = skc_node_get_parent(node);
 	if (!node || skc_cur_parent == SKC_NODE_MAX)
 		return skc_parse_error("Unexpected closing brace", *k);
 
 	node->next = 0;
 
-	node = &skc_nodes[skc_cur_parent];
+	node = skc_node_get_parent(node);
 	if (node->child == skc_node_num)
 		return skc_parse_error("Empty body braces", *k);
 
