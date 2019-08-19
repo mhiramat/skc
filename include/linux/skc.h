@@ -61,7 +61,6 @@ struct skc_iter {
 	const char 	*prefix;
 	int		prefix_len;
 	int 		prefix_offs;	/* matched position of prefix */
-	int		key_offs;	/* matched position of cur_key */
 };
 
 const char *skc_iter_start(struct skc_iter *iter, const char *prefix);

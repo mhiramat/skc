@@ -92,62 +92,40 @@ int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
 			skc_node_get_data(node)) + ret;
 }
 
-static int copy_one_word(char *buf, const char *src, size_t size)
-{
-	const char *p = strchr(src, '.');
-	int len;
-
-	if (!p)
-		len = strlen(src);
-	else
-		len = p - src;
-	if (len + 1 >= size)
-		return -E2BIG;
-	strncpy(buf, src, len);
-	buf[len] = '\0';
-
-	return len;
-}
-
 int skc_iter_unmatched_words(struct skc_iter *iter, int n,
 			     char *buf, size_t size)
 {
-	struct skc_node *pnode, *ppnode, *node = iter->cur_key;
+	struct skc_node *pnode, *ppnode, *node;
 	const char *p;
 	int len, m = 0;
 
-	p = skc_node_get_data(node) + iter->key_offs;
-	do {
-		/* Copy words from node */
-		while (*p != '\0') {
-			len = copy_one_word(buf, p, size);
-			if (len < 0)
-				return len;
-			m++;
-			if (n && n == m)
-				return m;
-			size -= len;
-			buf += len;
-			*buf++ = '.';
-			p += len;
-			if (*p == '.')
-				p++;
-		}
-		ppnode = node;
-		pnode = iter->cur_val_key;
-		if (pnode == ppnode) {	/* No more keys */
-			if (m)
-				buf[-1] = '\0';
-			return m;
-		}
-
-		do {
+	ppnode = iter->cur_key;
+	pnode = iter->cur_val_key;
+	while (pnode != ppnode) {
+		/* Search child node connected to cur_val_key */
+		while (pnode != ppnode) {
 			node = pnode;
 			pnode = skc_node_get_parent(node);
-		} while (pnode != ppnode);
+		}
 
 		p = skc_node_get_data(node);
-	} while (1);
+		len = strlen(p);
+		if (size < len + 1)
+			return -E2BIG;
+		strcpy(buf, p);
+		m++;
+		if (n && n == m)
+			return m;
+		size -= len + 1;
+		buf += len;
+
+		ppnode = node;
+		pnode = iter->cur_val_key;
+		if (pnode != ppnode)
+			*buf++ = '.';
+	}
+
+	return m;
 }
 
 
@@ -159,13 +137,9 @@ static bool skc_iter_match_prefix(struct skc_iter *iter)
 	int len = strlen(p);
 
 	if (len > iter->prefix_len - iter->prefix_offs)
-		len = iter->prefix_len - iter->prefix_offs;
-
-	if (strncmp(p, iter->prefix + iter->prefix_offs, len))
 		return false;
 
-	p += len;
-	if (*p != '.' && *p != '\0')
+	if (strncmp(p, iter->prefix + iter->prefix_offs, len))
 		return false;
 
 	switch (iter->prefix[iter->prefix_offs + len]) {
@@ -179,40 +153,14 @@ static bool skc_iter_match_prefix(struct skc_iter *iter)
 		return false;
 	}
 
-	iter->key_offs = len;
-	if (*p == '.')
-		iter->key_offs++;
-
 	return true;
-}
-
-static void skc_iter_unwind_key(struct skc_iter *iter)
-{
-	const char *p;
-	p = skc_node_get_data(iter->cur_key);
-	/* Adjust '.' from offsets */
-	if (iter->prefix[iter->prefix_offs] != '\0')
-		iter->prefix_offs--;
-	if (p[iter->key_offs] != '\0')
-		iter->key_offs--;
-
-	iter->prefix_offs -= iter->key_offs;
-	iter->key_offs = 0;
 }
 
 static int skc_iter_find_next_key(struct skc_iter *iter)
 {
-	while (!iter->cur_key->next) {
-		/* Back to parent key node */
-		iter->cur_key = skc_node_get_parent(iter->cur_key);
-		if (!iter->cur_key)
-			return -ENOENT;
-		iter->key_offs = strlen(skc_node_get_data(iter->cur_key));
-		skc_iter_unwind_key(iter);
-	}
 	iter->cur_key = skc_node_get_next(iter->cur_key);
 
-	return 0;
+	return iter->cur_key ? 0 : -ENOENT;
 }
 
 static const char *skc_iter_find_next_value(struct skc_iter *iter)
@@ -238,7 +186,6 @@ static const char *skc_iter_find_next(struct skc_iter *iter)
 		if (iter->prefix[iter->prefix_offs] != '\0') {
 			/* Partially matched, need to dig deeper */
 			iter->cur_key = skc_node_get_child(iter->cur_key);
-			iter->key_offs = 0;
 			continue;
 		} else { /* Matching complete */
 			iter->cur_val_key = iter->cur_key;
@@ -256,7 +203,6 @@ const char *skc_iter_start(struct skc_iter *iter, const char *prefix)
 {
 	iter->cur_key = skc_nodes;
 	iter->cur_val_key = NULL;
-	iter->key_offs = 0;
 	iter->prefix = prefix;
 	iter->prefix_len = strlen(prefix);
 	iter->prefix_offs = 0;
@@ -279,13 +225,7 @@ const char *skc_iter_next(struct skc_iter *iter)
 		node = skc_node_get_parent(node);
 	}
 
-	skc_iter_unwind_key(iter);
-	if (skc_iter_find_next_key(iter) < 0) {
-		iter->cur_val_key = NULL;
-		return NULL;
-	}
-
-	return skc_iter_find_next(iter);
+	return NULL;
 }
 
 static bool skc_node_match_prefix(struct skc_node *node, const char **prefix)
@@ -330,6 +270,8 @@ const char *skc_get_value(const char *key, struct skc_node **value)
 	}
 	return NULL;
 }
+
+/* SKC parse and tree build */
 
 static struct skc_node *skc_add_node(char *data, u32 flag)
 {
