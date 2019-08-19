@@ -53,6 +53,11 @@ skc_find_value(const char *key, struct skc_node **value)
 	return skc_node_find_value(NULL, key, value);
 }
 
+static inline struct skc_node *skc_find_node(const char *key)
+{
+	return skc_node_find_child(NULL, key);
+}
+
 static inline bool skc_node_is_array(struct skc_node *node)
 {
 	return skc_node_is_value(node) && node->next != 0;
