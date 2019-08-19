@@ -64,7 +64,7 @@ static inline bool skc_node_is_array(struct skc_node *node)
 	     value = anode ? skc_node_get_data(anode) : NULL)
 
 #define skc_node_for_each_value(node, key, anode, value)	\
-	for (value = skc_node_find_value(node, key, &anode); anode != NULL; \
+	for (value = skc_node_find_value(node, key, &anode); value != NULL; \
 	     anode = skc_node_get_next(anode),	\
 	     value = anode ? skc_node_get_data(anode) : NULL)
 
