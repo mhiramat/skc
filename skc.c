@@ -43,6 +43,11 @@ static int skc_parse_error(const char *msg, const char *p)
 	return -EINVAL;
 }
 
+struct skc_node *skc_root_node(void)
+{
+	return skc_nodes;
+}
+
 int skc_node_index(struct skc_node *node)
 {
 	return node - &skc_nodes[0];
@@ -70,14 +75,33 @@ const char *skc_node_get_data(struct skc_node *node)
 	return offset >= skc_data_size ? NULL : skc_data + offset;
 }
 
-struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key)
+static bool skc_node_match_prefix(struct skc_node *node, const char **prefix)
 {
-	struct skc_node *node = skc_node_get_child(parent);
+	const char *p = skc_node_get_data(node);
+	int len = strlen(p);
 
-	while (node) {
-		if (!strcmp(key, skc_node_get_data(node)))
+	if (strncmp(*prefix, p, len))
+		return false;
+
+	p = *prefix + len;
+	if (*p == '.')
+		p++;
+	else if (*p != '\0')
+		return false;
+	*prefix = p;
+
+	return true;
+}
+
+struct skc_node *skc_node_find_child(struct skc_node *node, const char *key)
+{
+	while (node && skc_node_is_key(node)) {
+		if (!skc_node_match_prefix(node, &key))
+			node = skc_node_get_next(node);
+		else if (*key != '\0')
+			node = skc_node_get_child(node);
+		else
 			break;
-		node = skc_node_get_next(node);
 	}
 
 	return node;
@@ -92,12 +116,13 @@ const char * skc_node_find_value(struct skc_node *parent, const char *key,
 		return NULL;
 
 	node = skc_node_get_child(node);
+	if (node && !skc_node_is_value(node))
+		return NULL;
+
 	if (result)
 		*result = node;
-	if (node && skc_node_is_value(node))
-		return skc_node_get_data(node);
-	else
-		return "";
+
+	return node ? skc_node_get_data(node) : "";
 }
 
 int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
@@ -121,6 +146,9 @@ int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
 	return snprintf(buf, size, "%s%s", ret == 0 ? "" : ".",
 			skc_node_get_data(node)) + ret;
 }
+
+
+/* SKC Iterator */
 
 int skc_iter_unmatched_words(struct skc_iter *iter, int n,
 			     char *buf, size_t size)
@@ -157,9 +185,6 @@ int skc_iter_unmatched_words(struct skc_iter *iter, int n,
 
 	return m;
 }
-
-
-/* SKC Iterator */
 
 static bool skc_iter_match_prefix(struct skc_iter *iter)
 {
@@ -255,49 +280,6 @@ const char *skc_iter_next(struct skc_iter *iter)
 		node = skc_node_get_parent(node);
 	}
 
-	return NULL;
-}
-
-static bool skc_node_match_prefix(struct skc_node *node, const char **prefix)
-{
-	const char *p = skc_node_get_data(node);
-	int len = strlen(p);
-
-	if (strncmp(*prefix, p, len))
-		return false;
-
-	p = *prefix + len;
-	if (*p == '.')
-		p++;
-	else if (*p != '\0')
-		return false;
-
-	*prefix = p;
-
-	return true;
-}
-
-/* key-only data returns "", no key matched return NULL  */
-const char *skc_get_value(const char *key, struct skc_node **value)
-{
-	struct skc_node *node = skc_nodes;
-	const char *p = key;
-
-	while (node && skc_node_is_key(node)) {
-		if (!skc_node_match_prefix(node, &p))
-			node = skc_node_get_next(node);
-		else {
-			node = skc_node_get_child(node);
-			if (*p == '\0')	{	/* Matching complete */
-				if (node && skc_node_is_value(node)) {
-					*value = node;
-					return skc_node_get_data(node);
-				}
-				*value = NULL;
-				return !node ? "" : NULL;
-			}
-		}
-	}
 	return NULL;
 }
 

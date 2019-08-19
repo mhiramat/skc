@@ -17,6 +17,7 @@ struct skc_node {
 #define SKC_KEYLEN_MAX	256
 
 /* Node tree access raw API's */
+struct skc_node *skc_root_node(void);
 int skc_node_index(struct skc_node *node);
 struct skc_node *skc_node_get_parent(struct skc_node *node);
 struct skc_node *skc_node_get_child(struct skc_node *node);
@@ -45,6 +46,13 @@ struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key);
 const char * skc_node_find_value(struct skc_node *parent, const char *key,
 				 struct skc_node **result);
 
+/* SKC key-value accessor */
+static inline const char *
+skc_find_value(const char *key, struct skc_node **value)
+{
+	return skc_node_find_value(skc_root_node(), key, value);
+}
+
 static inline bool skc_node_is_array(struct skc_node *node)
 {
 	return skc_node_is_value(node) && node->next != 0;
@@ -62,9 +70,6 @@ static inline bool skc_node_is_array(struct skc_node *node)
 
 /* Compose complete key */
 int skc_node_compose_key(struct skc_node *node, char *buf, size_t size);
-
-/* SKC key-value accessor */
-const char *skc_get_value(const char *key, struct skc_node **value);
 
 /* SKC node initializer */
 int skc_init(char *buf);

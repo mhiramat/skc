@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 	/* Key - Value query example */
 	if (query_key && words < 0) {
 		struct skc_node *vnode;
-		const char *val = skc_get_value(query_key, &vnode);
+		const char *val = skc_find_value(query_key, &vnode);
 
 		if (!val) {
 			printf("No value for \"%s\" key\n", query_key);
