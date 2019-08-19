@@ -40,6 +40,8 @@ static inline bool skc_node_is_array_value(struct skc_node *node)
 
 const char *skc_node_get_data(struct skc_node *node);
 
+struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key);
+
 /* Compose complete key */
 int skc_node_compose_key(struct skc_node *node, char *buf, size_t size);
 

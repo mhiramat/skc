@@ -70,6 +70,19 @@ const char *skc_node_get_data(struct skc_node *node)
 	return offset >= skc_data_size ? NULL : skc_data + offset;
 }
 
+struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key)
+{
+	struct skc_node *node = skc_node_get_child(parent);
+
+	while (node) {
+		if (!strcmp(key, skc_node_get_data(node)))
+			break;
+		node = skc_node_get_next(node);
+	}
+
+	return node;
+}
+
 int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
 {
 	int ret = 0;
