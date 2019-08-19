@@ -26,7 +26,7 @@ static struct skc_node skc_nodes[SKC_NODE_MAX];
 static int skc_node_num;
 static char *skc_data;
 static size_t skc_data_size;
-static u16 skc_cur_parent = SKC_NODE_MAX;
+static struct skc_node *last_parent;
 
 static int skc_parse_error(const char *msg, const char *p)
 {
@@ -345,15 +345,50 @@ static struct skc_node *skc_add_node(char *data, u32 flag)
 	BUG_ON(offset != node->data);
 	node->data |= flag;
 	node->child = 0;
-	node->next = skc_node_num;
-	node->parent = skc_cur_parent;
+	node->next = 0;
 
 	return node;
 }
 
-static struct skc_node *skc_peek_node(void)
+static struct skc_node *skc_last_sibling(struct skc_node *node)
 {
-	return (skc_node_num == 0) ? NULL : &skc_nodes[skc_node_num - 1];
+	while (node->next)
+		node = skc_node_get_next(node);
+
+	return node;
+}
+
+static struct skc_node *skc_add_sibling(char *data, u32 flag)
+{
+	struct skc_node *sib, *node = skc_add_node(data, flag);
+
+	if (node) {
+		if (!last_parent) {
+			node->parent = SKC_NODE_MAX;
+			sib = skc_last_sibling(skc_nodes);
+			sib->next = skc_node_index(node);
+		} else {
+			node->parent = skc_node_index(last_parent);
+			if (!last_parent->child) {
+				last_parent->child = skc_node_index(node);
+			} else {
+				sib = skc_node_get_child(last_parent);
+				sib = skc_last_sibling(sib);
+				sib->next = skc_node_index(node);
+			}
+		}
+	}
+	return node;
+}
+
+static struct skc_node *skc_add_child(char *data, u32 flag)
+{
+	struct skc_node *node = skc_add_sibling(data, flag);
+
+	if (node)
+		last_parent = node;
+
+	return node;
 }
 
 static bool skc_valid_key(char *key)
@@ -422,7 +457,7 @@ static int skc_parse_array(char **__v)
 		if (c < 0)
 			return c;
 
-		node = skc_add_node(*__v, SKC_VALUE);
+		node = skc_add_sibling(*__v, SKC_VALUE);
 		if (!node)
 			return -ENOMEM;
 		*__v = next;
@@ -432,48 +467,39 @@ static int skc_parse_array(char **__v)
 	return 0;
 }
 
+static struct skc_node *find_match_node(struct skc_node *node, char *k)
+{
+	while (node) {
+		if (!strcmp(skc_node_get_data(node), k))
+			break;
+		node = skc_node_get_next(node);
+	}
+	return node;
+}
+
 static int __skc_add_key(char *k)
 {
-	struct skc_node *node, *node2 = NULL;
+	struct skc_node *node;
 
 	if (!skc_valid_key(k))
 		return skc_parse_error("Invalid key", k);
 
-	if (skc_node_num == 0)
-		goto new_node;
+	if (unlikely(skc_node_num == 0))
+		goto add_node;
 
-	if (skc_cur_parent == SKC_NODE_MAX)
-		node = skc_nodes;
+	if (!last_parent)	/* the first level */
+		node = find_match_node(skc_nodes, k);
 	else
-		node = skc_node_get_child(skc_nodes + skc_cur_parent);
-	if (!strcmp(skc_node_get_data(node), k))
-		node2 = node;
+		node = find_match_node(skc_node_get_child(last_parent), k);
 
-	while (node->next && node->next != skc_node_num) {
-		node = skc_node_get_next(node);
-		if (!strcmp(skc_node_get_data(node), k))
-			node2 = node;
-	}
-
-	if (!node2) {
-new_node:
-		node = skc_add_node(k, SKC_KEY);
+	if (node)
+		last_parent = node;
+	else {
+add_node:
+		node = skc_add_child(k, SKC_KEY);
 		if (!node)
 			return -ENOMEM;
-		node->child = skc_node_num;
-		node->next = 0;
-	} else {
-		node->next = 0;
-		node = node2;
-		if (node2->child) {
-			node2 = skc_node_get_child(node2);
-			while (node2->next && node2->next != skc_node_num)
-				node2 = skc_node_get_next(node2);
-			node2->next = skc_node_num;
-		}
 	}
-	skc_cur_parent = skc_node_index(node);
-
 	return 0;
 }
 
@@ -496,8 +522,7 @@ static int __skc_parse_keys(char *k)
 
 static int skc_parse_kv(char **k, char *v)
 {
-	u16 prev_parent = skc_cur_parent;
-	u16 prev_node = skc_node_num;
+	struct skc_node *prev_parent = last_parent;
 	struct skc_node *node;
 	char *next;
 	int c, ret;
@@ -510,7 +535,7 @@ static int skc_parse_kv(char **k, char *v)
 	if (c < 0)
 		return c;
 
-	node = skc_add_node(v, SKC_VALUE);
+	node = skc_add_sibling(v, SKC_VALUE);
 	if (!node)
 		return -ENOMEM;
 
@@ -518,12 +543,9 @@ static int skc_parse_kv(char **k, char *v)
 		ret = skc_parse_array(&next);
 		if (ret < 0)
 			return ret;
-	} else	/* End */
-		node->next = 0;
+	}
 
-	node = &skc_nodes[prev_node];
-	node->next = skc_node_num;
-	skc_cur_parent = prev_parent;
+	last_parent = prev_parent;
 
 	*k = next;
 
@@ -532,23 +554,17 @@ static int skc_parse_kv(char **k, char *v)
 
 static int skc_parse_key(char **k, char *n)
 {
-	u16 prev_parent = skc_cur_parent;
-	u16 prev_node = skc_node_num;
-	struct skc_node *node;
+	struct skc_node *prev_parent = last_parent;
 	int ret;
 
 	*k = strim(*k);
-	if (**k == '\0') /* Empty item */
-		goto skipped;
+	if (**k != '\0') {
+		ret = __skc_parse_keys(*k);
+		if (ret)
+			return ret;
+		last_parent = prev_parent;
+	}
 
-	ret = __skc_parse_keys(*k);
-	if (ret)
-		return ret;
-
-	node = &skc_nodes[prev_node];
-	node->next = skc_node_num;
-	skc_cur_parent = prev_parent;
-skipped:
 	*k = n;
 
 	return 0;
@@ -562,6 +578,9 @@ static int skc_open_brace(char **k, char *n)
 	if (ret)
 		return ret;
 
+	/* Mark the last key as open brace */
+	last_parent->next = SKC_NODE_MAX;
+
 	*k = n;
 
 	return 0;
@@ -569,25 +588,21 @@ static int skc_open_brace(char **k, char *n)
 
 static int skc_close_brace(char **k, char *n)
 {
-	struct skc_node *node = skc_peek_node();
+	struct skc_node *node;
 
 	*k = strim(*k);
 	if (**k != '\0')
 		return skc_parse_error("Unexpected key, maybe forgot ;?", *k);
 
-	while (node && node->parent != skc_cur_parent)
-		node = skc_node_get_parent(node);
-	if (!node || skc_cur_parent == SKC_NODE_MAX)
+	if (!last_parent || last_parent->next != SKC_NODE_MAX)
 		return skc_parse_error("Unexpected closing brace", *k);
 
+	node = last_parent;
 	node->next = 0;
-
-	node = skc_node_get_parent(node);
-	if (node->child == skc_node_num)
-		return skc_parse_error("Empty body braces", *k);
-
-	node->next = skc_node_num;
-	skc_cur_parent = node->parent;
+	do {
+		node = skc_node_get_parent(node);
+	} while (node && node->next != SKC_NODE_MAX);
+	last_parent = node;
 
 	*k = n;
 
