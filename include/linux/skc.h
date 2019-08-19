@@ -21,6 +21,7 @@ int skc_node_index(struct skc_node *node);
 struct skc_node *skc_node_get_parent(struct skc_node *node);
 struct skc_node *skc_node_get_child(struct skc_node *node);
 struct skc_node *skc_node_get_next(struct skc_node *node);
+const char *skc_node_get_data(struct skc_node *node);
 
 /* SKC node accessors */
 static inline bool skc_node_is_value(struct skc_node *node)
@@ -38,9 +39,26 @@ static inline bool skc_node_is_array_value(struct skc_node *node)
 	return skc_node_is_value(node) && node->next;
 }
 
-const char *skc_node_get_data(struct skc_node *node);
-
+/* Tree-based key-value access APIs */
 struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key);
+
+const char * skc_node_find_value(struct skc_node *parent, const char *key,
+				 struct skc_node **result);
+
+static inline bool skc_node_is_array(struct skc_node *node)
+{
+	return skc_node_is_value(node) && node->next != 0;
+}
+
+#define skc_array_for_each_value(anode, value)		\
+	for (value = skc_node_get_data(anode); anode != NULL ;	\
+	     anode = skc_node_get_next(anode),	\
+	     value = anode ? skc_node_get_data(anode) : NULL)
+
+#define skc_node_for_each_value(node, key, anode, value)	\
+	for (value = skc_node_find_value(node, key, &anode); anode != NULL; \
+	     anode = skc_node_get_next(anode),	\
+	     value = anode ? skc_node_get_data(anode) : NULL)
 
 /* Compose complete key */
 int skc_node_compose_key(struct skc_node *node, char *buf, size_t size);
@@ -72,16 +90,6 @@ const char *skc_iter_next(struct skc_iter *iter);
 #define skc_for_each_value(iter, prefix, value)	\
 	for (value = skc_iter_start(iter, prefix); \
 	     value != NULL; value = skc_iter_next(iter))
-
-static inline bool skc_node_is_array(struct skc_node *node)
-{
-	return skc_node_is_value(node) && node->next != 0;
-}
-
-#define skc_array_for_each_value(anode, value)		\
-	for (value = skc_node_get_data(anode); anode != NULL ;	\
-	     anode = skc_node_get_next(anode),	\
-	     value = anode ? skc_node_get_data(anode) : NULL)
 
 /*
  * This returns current value node. Note that if the key has no value

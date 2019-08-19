@@ -83,6 +83,23 @@ struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key)
 	return node;
 }
 
+const char * skc_node_find_value(struct skc_node *parent, const char *key,
+				 struct skc_node **result)
+{
+	struct skc_node *node = skc_node_find_child(parent, key);
+
+	if (!node || !skc_node_is_key(node))
+		return NULL;
+
+	node = skc_node_get_child(node);
+	if (result)
+		*result = node;
+	if (node && skc_node_is_value(node))
+		return skc_node_get_data(node);
+	else
+		return "";
+}
+
 int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
 {
 	int ret = 0;
