@@ -50,7 +50,7 @@ const char * skc_node_find_value(struct skc_node *parent, const char *key,
 static inline const char *
 skc_find_value(const char *key, struct skc_node **value)
 {
-	return skc_node_find_value(skc_root_node(), key, value);
+	return skc_node_find_value(NULL, key, value);
 }
 
 static inline bool skc_node_is_array(struct skc_node *node)

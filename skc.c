@@ -93,8 +93,15 @@ static bool skc_node_match_prefix(struct skc_node *node, const char **prefix)
 	return true;
 }
 
-struct skc_node *skc_node_find_child(struct skc_node *node, const char *key)
+struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key)
 {
+	struct skc_node *node;
+
+	if (parent)
+		node = skc_node_get_child(parent);
+	else
+		node = skc_root_node();
+
 	while (node && skc_node_is_key(node)) {
 		if (!skc_node_match_prefix(node, &key))
 			node = skc_node_get_next(node);
