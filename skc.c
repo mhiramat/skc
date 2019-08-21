@@ -548,10 +548,6 @@ int skc_init(char *buf)
 	}
 
 	ret = skc_verify_tree();
-	if (!ret) {
-		pr_info("Structured kernel cmdline:\n");
-		skc_show_kvlist();
-	}
 
 	return ret;
 }
