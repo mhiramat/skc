@@ -104,6 +104,5 @@ int skc_init(char *buf);
 /* Debug dump functions */
 void skc_dump(void);
 void skc_show_tree(void);
-void skc_show_kvlist(void);
 
 #endif

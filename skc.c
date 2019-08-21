@@ -617,24 +617,3 @@ void skc_show_tree(void)
 		node = skc_node_get_next(node);
 	}
 }
-
-void skc_show_kvlist(void)
-{
-	struct skc_node *node;
-	char buf[SKC_KEYLEN_MAX];
-	int i;
-
-	for (i = 0; i < skc_node_num; i++) {
-		node = skc_nodes + i;
-		if (skc_node_is_value(node) || !node->child) {
-			skc_node_compose_key(node, buf, SKC_KEYLEN_MAX);
-			printk("%s = ", buf);
-			if (skc_node_is_key(node))
-				printk("\"\";\n");
-			else if (skc_nodes[i].next)
-				i += skc_show_array(skc_nodes + i);
-			else
-				printk("\"%s\";\n", skc_node_get_data(node));
-		}
-	}
-}

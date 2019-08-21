@@ -41,7 +41,7 @@ int load_skc_file(const char *path, char **buf)
 
 int usage(void)
 {
-	printf("Usage: skc [-q KEY|-t|-d|-l] skc-file \n");
+	printf("Usage: skc [-q KEY|-t|-d] skc-file \n");
 	return -1;
 }
 
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 	char *buf;
 	int ret, opt, mode = 'l';
 
-	while ((opt = getopt(argc, argv, "p:q:tdl")) != -1) {
+	while ((opt = getopt(argc, argv, "p:q:td")) != -1) {
 		switch (opt) {
 		case 'p':
 			prefix = strdup(optarg);
@@ -64,7 +64,6 @@ int main(int argc, char **argv)
 		/* Output mode */
 		case 't':
 		case 'd':
-		case 'l':
 			mode = opt;
 			break;
 		default:
@@ -114,10 +113,14 @@ int main(int argc, char **argv)
 		char key[SKC_KEYLEN_MAX];
 		const char *val;
 
-		parent = skc_find_node(prefix);
-		if (!parent) {
-			printf("No key-value has %s prefix\n", prefix);
-			return -ENOENT;
+		if (prefix[0] == '\0')
+			parent = NULL;
+		else {
+			parent = skc_find_node(prefix);
+			if (!parent) {
+				printf("No key-value has %s prefix\n", prefix);
+				return -ENOENT;
+			}
 		}
 		skc_node_for_each_key_value(parent, leaf, val) {
 			if (skc_node_compose_key(leaf, key, SKC_KEYLEN_MAX) < 0) {
@@ -140,14 +143,11 @@ int main(int argc, char **argv)
 	/* Dumping SKC examples */
 	switch (mode) {
 	case 't':
+	default:
 		skc_show_tree();
 		break;
 	case 'd':
 		skc_dump();
-		break;
-	case 'l':
-	default:
-		skc_show_kvlist();
 		break;
 	}
 
