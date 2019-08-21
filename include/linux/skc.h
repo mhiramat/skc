@@ -88,43 +88,4 @@ void skc_dump(void);
 void skc_show_tree(void);
 void skc_show_kvlist(void);
 
-/* Iterator interface */
-struct skc_iter {
-	struct skc_node *cur_key;	/* matched intermediate key */
-	struct skc_node *cur_val_key;	/* k-v pair key node */
-	const char 	*prefix;
-	int		prefix_len;
-	int 		prefix_offs;	/* matched position of prefix */
-};
-
-const char *skc_iter_start(struct skc_iter *iter, const char *prefix);
-const char *skc_iter_next(struct skc_iter *iter);
-
-/* This iterates the value nodes whoes key is matched to prefix */
-#define skc_for_each_value(iter, prefix, value)	\
-	for (value = skc_iter_start(iter, prefix); \
-	     value != NULL; value = skc_iter_next(iter))
-
-/*
- * This returns current value node. Note that if the key has no value
- * (key-only node) returns NULL.
- */
-static inline struct skc_node *skc_iter_value_node(struct skc_iter *iter)
-{
-	return iter->cur_val_key ? skc_node_get_child(iter->cur_val_key) : NULL;
-}
-
-/* For composing key, you may need the key node */
-static inline struct skc_node *skc_iter_key_node(struct skc_iter *iter)
-{
-	return iter->cur_val_key;
-}
-
-/*
- * Get unmatched part of words in key (n = 0 then all of the words).
- * Returns how many words are copied.
- */
-int skc_iter_unmatched_words(struct skc_iter *iter, int n,
-				char *buf, size_t size);
-
 #endif
