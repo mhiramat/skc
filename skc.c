@@ -154,6 +154,53 @@ int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
 			skc_node_get_data(node)) + ret;
 }
 
+bool skc_node_is_leaf(struct skc_node *node)
+{
+	return skc_node_is_key(node) &&
+		(!node->child || skc_node_is_value(skc_node_get_child(node)));
+}
+
+struct skc_node *skc_node_find_next_leaf(struct skc_node *root,
+					 struct skc_node *node)
+{
+	if (!node) {	/* first try */
+		node = root;
+		if (!node)
+			node = skc_nodes;
+	} else {
+		while (!node->next) {
+			node = skc_node_get_parent(node);
+			if (node == root)
+				return NULL;
+			/* User passed a node which is not uder parent */
+			if (WARN_ON(!node))
+				return NULL;
+		}
+		node = skc_node_get_next(node);
+	}
+
+	while (node && !skc_node_is_leaf(node))
+		node = skc_node_get_child(node);
+
+	return node;
+}
+
+const char *skc_node_find_next_key_value(struct skc_node *root,
+					 struct skc_node **leaf)
+{
+	/* tip must be passed */
+	if (WARN_ON(!leaf))
+		return NULL;
+
+	*leaf = skc_node_find_next_leaf(root, *leaf);
+	if (!*leaf)
+		return NULL;
+	if ((*leaf)->child)
+		return skc_node_get_data(skc_node_get_child(*leaf));
+	else
+		return "";	/* No value key */
+}
+
 /* SKC parse and tree build */
 
 static struct skc_node *skc_add_node(char *data, u32 flag)

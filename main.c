@@ -49,11 +49,15 @@ int main(int argc, char **argv)
 {
 	char *path = NULL;
 	char *query_key = NULL;
+	char *prefix = NULL;
 	char *buf;
 	int ret, opt, mode = 'l';
 
-	while ((opt = getopt(argc, argv, "q:tdl")) != -1) {
+	while ((opt = getopt(argc, argv, "p:q:tdl")) != -1) {
 		switch (opt) {
+		case 'p':
+			prefix = strdup(optarg);
+			break;
 		case 'q':
 			query_key = strdup(optarg);
 			break;
@@ -102,6 +106,34 @@ int main(int argc, char **argv)
 					vnode->next ? ", " : "\n");
 		} else
 			printf("\"%s\"\n", val);
+		return 0;
+	}
+	/* Key - value iterating example */
+	if (prefix) {
+		struct skc_node *parent, *leaf, *vnode;
+		char key[SKC_KEYLEN_MAX];
+		const char *val;
+
+		parent = skc_find_node(prefix);
+		if (!parent) {
+			printf("No key-value has %s prefix\n", prefix);
+			return -ENOENT;
+		}
+		skc_node_for_each_key_value(parent, leaf, val) {
+			if (skc_node_compose_key(leaf, key, SKC_KEYLEN_MAX) < 0) {
+				printf("Failed to compose key");
+				return -EINVAL;
+			}
+			printf("%s = ", key);
+			vnode = skc_node_get_child(leaf);
+			if (vnode && skc_node_is_array(vnode)) {
+				skc_array_for_each_value(vnode, val)
+					printf("\"%s\"%s",
+					       skc_node_get_data(vnode),
+					       vnode->next ? ", " : "\n");
+			} else
+				printf("\"%s\"\n", val);
+		}
 		return 0;
 	}
 

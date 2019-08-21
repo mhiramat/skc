@@ -40,11 +40,21 @@ static inline bool skc_node_is_array_value(struct skc_node *node)
 	return skc_node_is_value(node) && node->next;
 }
 
+/* "leaf" key nodes are the end points of the tree, which may have value node */
+bool skc_node_is_leaf(struct skc_node *node);
+
 /* Tree-based key-value access APIs */
 struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key);
 
 const char * skc_node_find_value(struct skc_node *parent, const char *key,
 				 struct skc_node **result);
+
+struct skc_node *skc_node_find_next_leaf(struct skc_node *root,
+					 struct skc_node *leaf);
+
+/* Find next key-value pair nodes */
+const char *skc_node_find_next_key_value(struct skc_node *root,
+					 struct skc_node **key);
 
 /* SKC key-value accessor */
 static inline const char *
@@ -76,6 +86,14 @@ static inline bool skc_node_is_array(struct skc_node *node)
 	for (value = skc_node_find_value(node, key, &anode); value != NULL; \
 	     anode = skc_node_get_next(anode),	\
 	     value = anode ? skc_node_get_data(anode) : NULL)
+
+/* Key-value pair iterator */
+#define skc_node_for_each_key_value(node, key, value)			\
+	for (key = NULL, value = skc_node_find_next_key_value(node, &key); \
+	     key != NULL; value = skc_node_find_next_key_value(node, &key))
+
+#define skc_for_each_key_value(key, value)			\
+	skc_node_for_each_key_value(NULL, key, value)
 
 /* Compose complete key */
 int skc_node_compose_key(struct skc_node *node, char *buf, size_t size);

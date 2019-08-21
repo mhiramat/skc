@@ -2,6 +2,7 @@ ftrace {
 	tracer = function;
 	options = event-fork, sym-addr, stacktrace;
 	buffer_size = 1M;
+	tp_printk;
 	event.sched.sched_process_exec {
 		filter = "pid < 128";
 	}
