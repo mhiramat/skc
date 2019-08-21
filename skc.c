@@ -273,16 +273,14 @@ static bool skc_valid_key(char *key)
 	return *key == '\0';
 }
 
-static char *find_ending_quote(char *str)
+static char *find_ending_quote(char *p)
 {
-	char *p = str;
-
 	do {
 		p = strchr(p + 1, '"');
 		if (!p)
-			goto end;
+			break;
 	} while (*(p - 1) == '\\');
-end:
+
 	return p;
 }
 
