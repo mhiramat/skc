@@ -27,12 +27,12 @@ struct skc_node {
 #define SKC_KEYLEN_MAX	256
 
 /* Node tree access raw APIs */
-struct skc_node *skc_root_node(void);
-int skc_node_index(struct skc_node *node);
-struct skc_node *skc_node_get_parent(struct skc_node *node);
-struct skc_node *skc_node_get_child(struct skc_node *node);
-struct skc_node *skc_node_get_next(struct skc_node *node);
-const char *skc_node_get_data(struct skc_node *node);
+struct skc_node * __init skc_root_node(void);
+int __init skc_node_index(struct skc_node *node);
+struct skc_node * __init skc_node_get_parent(struct skc_node *node);
+struct skc_node * __init skc_node_get_child(struct skc_node *node);
+struct skc_node * __init skc_node_get_next(struct skc_node *node);
+const char * __init skc_node_get_data(struct skc_node *node);
 
 /**
  * skc_node_is_value() - Test the node is a value node
@@ -40,7 +40,7 @@ const char *skc_node_get_data(struct skc_node *node);
  *
  * Test the @node is a value node and return true if a value node, false if not.
  */
-static inline bool skc_node_is_value(struct skc_node *node)
+static inline __init bool skc_node_is_value(struct skc_node *node)
 {
 	return !!(node->data & SKC_VALUE);
 }
@@ -51,7 +51,7 @@ static inline bool skc_node_is_value(struct skc_node *node)
  *
  * Test the @node is a key node and return true if a key node, false if not.
  */
-static inline bool skc_node_is_key(struct skc_node *node)
+static inline __init bool skc_node_is_key(struct skc_node *node)
 {
 	return !(node->data & SKC_VALUE);
 }
@@ -62,7 +62,7 @@ static inline bool skc_node_is_key(struct skc_node *node)
  *
  * Test the @node is an arraied value node.
  */
-static inline bool skc_node_is_array(struct skc_node *node)
+static inline __init bool skc_node_is_array(struct skc_node *node)
 {
 	return skc_node_is_value(node) && node->next != 0;
 }
@@ -74,23 +74,25 @@ static inline bool skc_node_is_array(struct skc_node *node)
  * Test the @node is a leaf key node which is a key node and has a value node
  * or no child. Returns true if it is a leaf node, or false if not.
  */
-static inline bool skc_node_is_leaf(struct skc_node *node)
+static inline __init bool skc_node_is_leaf(struct skc_node *node)
 {
 	return skc_node_is_key(node) &&
 		(!node->child || skc_node_is_value(skc_node_get_child(node)));
 }
 
 /* Tree-based key-value access APIs */
-struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key);
+struct skc_node * __init skc_node_find_child(struct skc_node *parent,
+					     const char *key);
 
-const char * skc_node_find_value(struct skc_node *parent, const char *key,
-				 struct skc_node **value);
+const char * __init skc_node_find_value(struct skc_node *parent,
+					const char *key,
+					struct skc_node **value);
 
-struct skc_node *skc_node_find_next_leaf(struct skc_node *root,
-					 struct skc_node *leaf);
+struct skc_node * __init skc_node_find_next_leaf(struct skc_node *root,
+						 struct skc_node *leaf);
 
-const char *skc_node_find_next_key_value(struct skc_node *root,
-					 struct skc_node **leaf);
+const char * __init skc_node_find_next_key_value(struct skc_node *root,
+						 struct skc_node **leaf);
 
 /**
  * skc_find_value() - Find a value which matches the key
@@ -102,7 +104,7 @@ const char *skc_node_find_next_key_value(struct skc_node *root,
  * Note that this can return 0-length string and store NULL in *@value for
  * key-only (non-value) entry.
  */
-static inline const char *
+static inline const char * __init
 skc_find_value(const char *key, struct skc_node **value)
 {
 	return skc_node_find_value(NULL, key, value);
@@ -116,7 +118,7 @@ skc_find_value(const char *key, struct skc_node **value)
  * Search a (key) node whose key matches @key from whole of SKC tree and
  * return the node if found. If not found, returns NULL.
  */
-static inline struct skc_node *skc_find_node(const char *key)
+static inline struct skc_node * __init skc_find_node(const char *key)
 {
 	return skc_node_find_child(NULL, key);
 }
@@ -191,12 +193,12 @@ static inline struct skc_node *skc_find_node(const char *key)
 	skc_node_for_each_key_value(NULL, key, value)
 
 /* Compose complete key */
-int skc_node_compose_key(struct skc_node *node, char *buf, size_t size);
+int __init skc_node_compose_key(struct skc_node *node, char *buf, size_t size);
 
 /* SKC node initializer */
-int skc_init(char *buf);
+int __init skc_init(char *buf);
 
 /* Debug dump functions */
-void skc_debug_dump(void);
+void __init skc_debug_dump(void);
 
 #endif

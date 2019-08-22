@@ -22,13 +22,13 @@
  * node (for array).
  */
 
-static struct skc_node skc_nodes[SKC_NODE_MAX];
-static int skc_node_num;
-static char *skc_data;
-static size_t skc_data_size;
-static struct skc_node *last_parent;
+static struct skc_node skc_nodes[SKC_NODE_MAX] __initdata;
+static int skc_node_num __initdata;
+static char *skc_data __initdata;
+static size_t skc_data_size __initdata;
+static struct skc_node *last_parent __initdata;
 
-static int skc_parse_error(const char *msg, const char *p)
+static int __init skc_parse_error(const char *msg, const char *p)
 {
 	int line = 0, col = 0;
 	int i, pos = p - skc_data;
@@ -49,7 +49,7 @@ static int skc_parse_error(const char *msg, const char *p)
  * Return the address of root node of structured kernel cmdline. If the
  * structured kernel cmdline is not initiized, return NULL.
  */
-struct skc_node *skc_root_node(void)
+struct skc_node * __init skc_root_node(void)
 {
 	if (unlikely(!skc_data))
 		return NULL;
@@ -63,7 +63,7 @@ struct skc_node *skc_root_node(void)
  *
  * Return the index number of @node in SKC node list.
  */
-int skc_node_index(struct skc_node *node)
+int __init skc_node_index(struct skc_node *node)
 {
 	return node - &skc_nodes[0];
 }
@@ -75,7 +75,7 @@ int skc_node_index(struct skc_node *node)
  * Return the parent node of @node. If the node is top node of the tree,
  * return NULL.
  */
-struct skc_node *skc_node_get_parent(struct skc_node *node)
+struct skc_node * __init skc_node_get_parent(struct skc_node *node)
 {
 	return node->parent == SKC_NODE_MAX ? NULL : &skc_nodes[node->parent];
 }
@@ -87,7 +87,7 @@ struct skc_node *skc_node_get_parent(struct skc_node *node)
  * Return the first child node of @node. If the node has no child, return
  * NULL.
  */
-struct skc_node *skc_node_get_child(struct skc_node *node)
+struct skc_node * __init skc_node_get_child(struct skc_node *node)
 {
 	return node->child ? &skc_nodes[node->child] : NULL;
 }
@@ -101,7 +101,7 @@ struct skc_node *skc_node_get_child(struct skc_node *node)
  * has no siblings. (You also has to check whether the parent's child node
  * is @node or not.)
  */
-struct skc_node *skc_node_get_next(struct skc_node *node)
+struct skc_node * __init skc_node_get_next(struct skc_node *node)
 {
 	return node->next ? &skc_nodes[node->next] : NULL;
 }
@@ -113,7 +113,7 @@ struct skc_node *skc_node_get_next(struct skc_node *node)
  * Return the data (which is always a null terminated string) of @node.
  * If the node has invalid data, warn and return NULL.
  */
-const char *skc_node_get_data(struct skc_node *node)
+const char * __init skc_node_get_data(struct skc_node *node)
 {
 	int offset = node->data & ~SKC_VALUE;
 
@@ -123,7 +123,8 @@ const char *skc_node_get_data(struct skc_node *node)
 	return skc_data + offset;
 }
 
-static bool skc_node_match_prefix(struct skc_node *node, const char **prefix)
+static bool __init
+skc_node_match_prefix(struct skc_node *node, const char **prefix)
 {
 	const char *p = skc_node_get_data(node);
 	int len = strlen(p);
@@ -150,7 +151,8 @@ static bool skc_node_match_prefix(struct skc_node *node, const char **prefix)
  * several words jointed with '.'. If @parent is NULL, this searches the
  * node from whole tree. Return NULL if no node is matched.
  */
-struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key)
+struct skc_node * __init
+skc_node_find_child(struct skc_node *parent, const char *key)
 {
 	struct skc_node *node;
 
@@ -186,8 +188,9 @@ struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key)
  * key has no value. And also it will return the value of the first entry if
  * the value is an array.
  */
-const char * skc_node_find_value(struct skc_node *parent, const char *key,
-				 struct skc_node **value)
+const char * __init
+skc_node_find_value(struct skc_node *parent, const char *key,
+		    struct skc_node **value)
 {
 	struct skc_node *node = skc_node_find_child(parent, key);
 
@@ -214,7 +217,7 @@ const char * skc_node_find_value(struct skc_node *parent, const char *key,
  * length of the key stored in @buf. Or returns -EINVAL if @node or @buf is
  *  NULL, returns -E2BIG if buffer is smaller than the key.
  */
-int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
+int __init skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
 {
 	int ret = 0;
 
@@ -248,8 +251,8 @@ int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
  * under @root node. Return the next node or NULL if no next leaf node is
  * found.
  */
-struct skc_node *skc_node_find_next_leaf(struct skc_node *root,
-					 struct skc_node *node)
+struct skc_node * __init skc_node_find_next_leaf(struct skc_node *root,
+						 struct skc_node *node)
 {
 	if (unlikely(!skc_data))
 		return NULL;
@@ -287,8 +290,8 @@ struct skc_node *skc_node_find_next_leaf(struct skc_node *root,
  * Note that this returns 0-length string if the key has no value, or
  * the value of the first entry if the value is an array.
  */
-const char *skc_node_find_next_key_value(struct skc_node *root,
-					 struct skc_node **leaf)
+const char * __init skc_node_find_next_key_value(struct skc_node *root,
+						 struct skc_node **leaf)
 {
 	/* tip must be passed */
 	if (WARN_ON(!leaf))
@@ -305,7 +308,7 @@ const char *skc_node_find_next_key_value(struct skc_node *root,
 
 /* SKC parse and tree build */
 
-static struct skc_node *skc_add_node(char *data, u32 flag)
+static struct skc_node * __init skc_add_node(char *data, u32 flag)
 {
 	struct skc_node *node;
 	unsigned long offset;
@@ -324,7 +327,7 @@ static struct skc_node *skc_add_node(char *data, u32 flag)
 	return node;
 }
 
-static struct skc_node *skc_last_sibling(struct skc_node *node)
+static inline __init struct skc_node *skc_last_sibling(struct skc_node *node)
 {
 	while (node->next)
 		node = skc_node_get_next(node);
@@ -332,7 +335,7 @@ static struct skc_node *skc_last_sibling(struct skc_node *node)
 	return node;
 }
 
-static struct skc_node *skc_add_sibling(char *data, u32 flag)
+static struct skc_node * __init skc_add_sibling(char *data, u32 flag)
 {
 	struct skc_node *sib, *node = skc_add_node(data, flag);
 
@@ -356,7 +359,7 @@ static struct skc_node *skc_add_sibling(char *data, u32 flag)
 	return node;
 }
 
-static struct skc_node *skc_add_child(char *data, u32 flag)
+static inline __init struct skc_node *skc_add_child(char *data, u32 flag)
 {
 	struct skc_node *node = skc_add_sibling(data, flag);
 
@@ -366,7 +369,7 @@ static struct skc_node *skc_add_child(char *data, u32 flag)
 	return node;
 }
 
-static bool skc_valid_keyword(char *key)
+static inline __init bool skc_valid_keyword(char *key)
 {
 	if (key[0] == '\0')
 		return false;
@@ -377,7 +380,7 @@ static bool skc_valid_keyword(char *key)
 	return *key == '\0';
 }
 
-static char *find_ending_quote(char *p)
+static inline __init char *find_ending_quote(char *p)
 {
 	do {
 		p = strchr(p + 1, '"');
@@ -389,7 +392,7 @@ static char *find_ending_quote(char *p)
 }
 
 /* Return delimiter or error, no node added */
-static int __skc_parse_value(char **__v, char **__n)
+static int __init __skc_parse_value(char **__v, char **__n)
 {
 	char *p, *v = *__v;
 	int c;
@@ -420,7 +423,7 @@ static int __skc_parse_value(char **__v, char **__n)
 	return c;
 }
 
-static int skc_parse_array(char **__v)
+static int __init skc_parse_array(char **__v)
 {
 	struct skc_node *node;
 	char *next;
@@ -441,7 +444,8 @@ static int skc_parse_array(char **__v)
 	return 0;
 }
 
-static struct skc_node *find_match_node(struct skc_node *node, char *k)
+static inline __init
+struct skc_node *find_match_node(struct skc_node *node, char *k)
 {
 	while (node) {
 		if (!strcmp(skc_node_get_data(node), k))
@@ -451,7 +455,7 @@ static struct skc_node *find_match_node(struct skc_node *node, char *k)
 	return node;
 }
 
-static int __skc_add_key(char *k)
+static int __init __skc_add_key(char *k)
 {
 	struct skc_node *node;
 
@@ -477,7 +481,7 @@ add_node:
 	return 0;
 }
 
-static int __skc_parse_keys(char *k)
+static int __init __skc_parse_keys(char *k)
 {
 	char *p;
 	int ret;
@@ -494,7 +498,7 @@ static int __skc_parse_keys(char *k)
 	return __skc_add_key(k);
 }
 
-static int skc_parse_kv(char **k, char *v)
+static int __init skc_parse_kv(char **k, char *v)
 {
 	struct skc_node *prev_parent = last_parent;
 	struct skc_node *node;
@@ -526,7 +530,7 @@ static int skc_parse_kv(char **k, char *v)
 	return 0;
 }
 
-static int skc_parse_key(char **k, char *n)
+static int __init skc_parse_key(char **k, char *n)
 {
 	struct skc_node *prev_parent = last_parent;
 	int ret;
@@ -544,7 +548,7 @@ static int skc_parse_key(char **k, char *n)
 	return 0;
 }
 
-static int skc_open_brace(char **k, char *n)
+static int __init skc_open_brace(char **k, char *n)
 {
 	int ret;
 
@@ -560,7 +564,7 @@ static int skc_open_brace(char **k, char *n)
 	return 0;
 }
 
-static int skc_close_brace(char **k, char *n)
+static int __init skc_close_brace(char **k, char *n)
 {
 	struct skc_node *node;
 
@@ -583,7 +587,7 @@ static int skc_close_brace(char **k, char *n)
 	return 0;
 }
 
-static int skc_verify_tree(void)
+static int __init skc_verify_tree(void)
 {
 	int i;
 
@@ -606,7 +610,7 @@ static int skc_verify_tree(void)
  * null terminated string and smaller than SKC_DATA_MAX.
  * Return 0 if succeeded, or -errno if there is any error.
  */
-int skc_init(char *buf)
+int __init skc_init(char *buf)
 {
 	char *p, *q;
 	int ret, c;
@@ -661,7 +665,7 @@ int skc_init(char *buf)
  *
  * Dump the current SKC node list on printk buffer for debug.
  */
-void skc_debug_dump(void)
+void __init skc_debug_dump(void)
 {
 	int i;
 

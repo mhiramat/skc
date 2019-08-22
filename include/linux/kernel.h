@@ -11,4 +11,7 @@ typedef unsigned int   u32;
 
 #define unlikely(cond)	(cond)
 
+#define __init
+#define __initdata
+
 #endif
