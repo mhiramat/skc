@@ -26,7 +26,7 @@ struct skc_node {
 #define SKC_NODE_MAX	512
 #define SKC_KEYLEN_MAX	256
 
-/* Node tree access raw API's */
+/* Node tree access raw APIs */
 struct skc_node *skc_root_node(void);
 int skc_node_index(struct skc_node *node);
 struct skc_node *skc_node_get_parent(struct skc_node *node);
@@ -162,7 +162,7 @@ static inline struct skc_node *skc_find_node(const char *key)
  * key-value pair existance.
  */
 #define skc_node_for_each_array_value(node, key, anode, value)		\
-	for (value = skc_node_find_value(node, key, &anode); anode != NULL; \
+	for (value = skc_node_find_value(node, key, &anode); value != NULL; \
 	     anode = skc_node_get_next(anode),				\
 	     value = anode ? skc_node_get_data(anode) : NULL)
 
