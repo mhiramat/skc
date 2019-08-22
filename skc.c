@@ -508,8 +508,12 @@ int skc_init(char *buf)
 	if (skc_data)
 		return -EBUSY;
 
+	ret = strlen(buf);
+	if (ret > SKC_DATA_MAX - 1 || ret == 0)
+		return -ERANGE;
+
 	skc_data = buf;
-	skc_data_size = strlen(buf);
+	skc_data_size = ret;
 
 	p = buf;
 	do {
@@ -543,9 +547,7 @@ int skc_init(char *buf)
 			return skc_parse_error("No delimiter", p);
 	}
 
-	ret = skc_verify_tree();
-
-	return ret;
+	return skc_verify_tree();
 }
 
 /* Dump current skc */

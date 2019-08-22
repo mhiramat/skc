@@ -12,6 +12,8 @@ struct skc_node {
 
 #define SKC_KEY		0
 #define SKC_VALUE	(1 << 15)
+/* Maximum size of structured kernel cmdline is 32KB - 1 */
+#define SKC_DATA_MAX	(SKC_VALUE - 1)
 
 #define SKC_NODE_MAX	512
 #define SKC_KEYLEN_MAX	256
