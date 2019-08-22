@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 		skc_show_tree();
 		break;
 	case 'd':
-		skc_dump();
+		skc_debug_dump();
 		break;
 	}
 

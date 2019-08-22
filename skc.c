@@ -72,7 +72,10 @@ const char *skc_node_get_data(struct skc_node *node)
 {
 	int offset = node->data & ~SKC_VALUE;
 
-	return offset >= skc_data_size ? NULL : skc_data + offset;
+	if (WARN_ON(offset >= skc_data_size))
+		return NULL;
+
+	return skc_data + offset;
 }
 
 static bool skc_node_match_prefix(struct skc_node *node, const char **prefix)
@@ -213,7 +216,7 @@ static struct skc_node *skc_add_node(char *data, u32 flag)
 
 	node = &skc_nodes[skc_node_num++];
 	offset = data - skc_data;
-	node->data = (u32)offset;
+	node->data = (u16)offset;
 	BUG_ON(offset != node->data);
 	node->data |= flag;
 	node->child = 0;
@@ -250,6 +253,7 @@ static struct skc_node *skc_add_sibling(char *data, u32 flag)
 			}
 		}
 	}
+
 	return node;
 }
 
@@ -263,13 +267,14 @@ static struct skc_node *skc_add_child(char *data, u32 flag)
 	return node;
 }
 
-static bool skc_valid_key(char *key)
+static bool skc_valid_keyword(char *key)
 {
 	if (key[0] == '\0')
 		return false;
 
-	while (isalnum(*key) || *key == '.' || *key == '_')
+	while (isalnum(*key) || *key == '-' || *key == '_')
 		key++;
+
 	return *key == '\0';
 }
 
@@ -351,8 +356,8 @@ static int __skc_add_key(char *k)
 {
 	struct skc_node *node;
 
-	if (!skc_valid_key(k))
-		return skc_parse_error("Invalid key", k);
+	if (!skc_valid_keyword(k))
+		return skc_parse_error("Invalid keyword", k);
 
 	if (unlikely(skc_node_num == 0))
 		goto add_node;
@@ -551,12 +556,12 @@ int skc_init(char *buf)
 }
 
 /* Dump current skc */
-void skc_dump(void)
+void skc_debug_dump(void)
 {
 	int i;
 
 	for (i = 0; i < skc_node_num; i++) {
-		printk("[%d] %s (%s) .next=%d, .child=%d .parent=%d\n", i,
+		pr_debug("[%d] %s (%s) .next=%d, .child=%d .parent=%d\n", i,
 			skc_node_get_data(skc_nodes + i),
 			skc_node_is_value(skc_nodes + i) ? "value" : "key",
 			skc_nodes[i].next, skc_nodes[i].child,

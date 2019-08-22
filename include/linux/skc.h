@@ -35,9 +35,9 @@ static inline bool skc_node_is_key(struct skc_node *node)
 	return !(node->data & SKC_VALUE);
 }
 
-static inline bool skc_node_is_array_value(struct skc_node *node)
+static inline bool skc_node_is_array(struct skc_node *node)
 {
-	return skc_node_is_value(node) && node->next;
+	return skc_node_is_value(node) && node->next != 0;
 }
 
 /* "leaf" key nodes are the end points of the tree, which may have value node */
@@ -68,23 +68,18 @@ static inline struct skc_node *skc_find_node(const char *key)
 	return skc_node_find_child(NULL, key);
 }
 
-static inline bool skc_node_is_array(struct skc_node *node)
-{
-	return skc_node_is_value(node) && node->next != 0;
-}
-
-#define skc_array_for_each_value(anode, value)		\
-	for (value = skc_node_get_data(anode); anode != NULL ;	\
-	     anode = skc_node_get_next(anode),	\
+#define skc_array_for_each_value(anode, value)				\
+	for (value = skc_node_get_data(anode); anode != NULL ;		\
+	     anode = skc_node_get_next(anode),				\
 	     value = anode ? skc_node_get_data(anode) : NULL)
 
-#define skc_node_for_each_child(parent, child)		\
+#define skc_node_for_each_child(parent, child)				\
 	for (child = skc_node_get_child(parent); child != NULL ;	\
 	     child = skc_node_get_next(child))
 
-#define skc_node_for_each_value(node, key, anode, value)	\
+#define skc_node_for_each_array_value(node, key, anode, value)		\
 	for (value = skc_node_find_value(node, key, &anode); value != NULL; \
-	     anode = skc_node_get_next(anode),	\
+	     anode = skc_node_get_next(anode),				\
 	     value = anode ? skc_node_get_data(anode) : NULL)
 
 /* Key-value pair iterator */
@@ -92,7 +87,7 @@ static inline bool skc_node_is_array(struct skc_node *node)
 	for (key = NULL, value = skc_node_find_next_key_value(node, &key); \
 	     key != NULL; value = skc_node_find_next_key_value(node, &key))
 
-#define skc_for_each_key_value(key, value)			\
+#define skc_for_each_key_value(key, value)				\
 	skc_node_for_each_key_value(NULL, key, value)
 
 /* Compose complete key */
@@ -102,7 +97,7 @@ int skc_node_compose_key(struct skc_node *node, char *buf, size_t size);
 int skc_init(char *buf);
 
 /* Debug dump functions */
-void skc_dump(void);
+void skc_debug_dump(void);
 void skc_show_tree(void);
 
 #endif
