@@ -43,6 +43,12 @@ static int skc_parse_error(const char *msg, const char *p)
 	return -EINVAL;
 }
 
+/**
+ * skc_root_node() - Get the root node of structured kernel cmdline
+ *
+ * Return the address of root node of structured kernel cmdline. If the
+ * structured kernel cmdline is not initiized, return NULL.
+ */
 struct skc_node *skc_root_node(void)
 {
 	if (unlikely(!skc_data))
@@ -51,26 +57,62 @@ struct skc_node *skc_root_node(void)
 	return skc_nodes;
 }
 
+/**
+ * skc_node_index() - Get the index of SKC node
+ * @node: A target node of getting index.
+ *
+ * Return the index number of @node in SKC node list.
+ */
 int skc_node_index(struct skc_node *node)
 {
 	return node - &skc_nodes[0];
 }
 
+/**
+ * skc_node_get_parent() - Get the parent SKC node
+ * @node: An SKC node.
+ *
+ * Return the parent node of @node. If the node is top node of the tree,
+ * return NULL.
+ */
 struct skc_node *skc_node_get_parent(struct skc_node *node)
 {
 	return node->parent == SKC_NODE_MAX ? NULL : &skc_nodes[node->parent];
 }
 
+/**
+ * skc_node_get_child() - Get the child SKC node
+ * @node: An SKC node.
+ *
+ * Return the first child node of @node. If the node has no child, return
+ * NULL.
+ */
 struct skc_node *skc_node_get_child(struct skc_node *node)
 {
 	return node->child ? &skc_nodes[node->child] : NULL;
 }
 
+/**
+ * skc_node_get_next() - Get the next sibling SKC node
+ * @node: An SKC node.
+ *
+ * Return the NEXT sibling node of @node. If the node has no next sibling,
+ * return NULL. Note that even if this returns NULL, it doesn't mean @node
+ * has no siblings. (You also has to check whether the parent's child node
+ * is @node or not.)
+ */
 struct skc_node *skc_node_get_next(struct skc_node *node)
 {
 	return node->next ? &skc_nodes[node->next] : NULL;
 }
 
+/**
+ * skc_node_get_data() - Get the data of SKC node
+ * @node: An SKC node.
+ *
+ * Return the data (which is always a null terminated string) of @node.
+ * If the node has invalid data, warn and return NULL.
+ */
 const char *skc_node_get_data(struct skc_node *node)
 {
 	int offset = node->data & ~SKC_VALUE;
@@ -99,6 +141,15 @@ static bool skc_node_match_prefix(struct skc_node *node, const char **prefix)
 	return true;
 }
 
+/**
+ * skc_node_find_child() - Find a child node which matches given key
+ * @parent: An SKC node.
+ * @key: A key string.
+ *
+ * Search a node under @parent which matches @key. The @key can contain
+ * several words jointed with '.'. If @parent is NULL, this searches the
+ * node from whole tree. Return NULL if no node is matched.
+ */
 struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key)
 {
 	struct skc_node *node;
@@ -120,8 +171,23 @@ struct skc_node *skc_node_find_child(struct skc_node *parent, const char *key)
 	return node;
 }
 
+/**
+ * skc_node_find_value() - Find a value node which matches given key
+ * @parent: An SKC node.
+ * @key: A key string.
+ * @value: A container pointer of found SKC node.
+ *
+ * Search a value node under @parent whose (parent) key node matches @key,
+ * store it in @value, and returns the value string.
+ * The @key can contain several words jointed with '.'. If @parent is NULL,
+ * this searches the node from whole tree. Return the value string if a
+ * matched key found, return NULL if no node is matched.
+ * Note that this returns 0-length string and stores NULL in @value if the
+ * key has no value. And also it will return the value of the first entry if
+ * the value is an array.
+ */
 const char * skc_node_find_value(struct skc_node *parent, const char *key,
-				 struct skc_node **result)
+				 struct skc_node **value)
 {
 	struct skc_node *node = skc_node_find_child(parent, key);
 
@@ -132,17 +198,27 @@ const char * skc_node_find_value(struct skc_node *parent, const char *key,
 	if (node && !skc_node_is_value(node))
 		return NULL;
 
-	if (result)
-		*result = node;
+	if (value)
+		*value = node;
 
 	return node ? skc_node_get_data(node) : "";
 }
 
+/**
+ * skc_node_compose_key() - Compose key string of the SKC node
+ * @node: An SKC node.
+ * @buf: A buffer to store the key.
+ * @size: The size of the @buf.
+ *
+ * Compose the full-length key of the @node into @buf. Returns the total
+ * length of the key stored in @buf. Or returns -EINVAL if @node or @buf is
+ *  NULL, returns -E2BIG if buffer is smaller than the key.
+ */
 int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
 {
 	int ret = 0;
 
-	if (!node)
+	if (!node || !buf)
 		return -EINVAL;
 
 	if (skc_node_is_value(node))
@@ -163,12 +239,15 @@ int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
 			skc_node_get_data(node)) + ret;
 }
 
-bool skc_node_is_leaf(struct skc_node *node)
-{
-	return skc_node_is_key(node) &&
-		(!node->child || skc_node_is_value(skc_node_get_child(node)));
-}
-
+/**
+ * skc_node_find_next_leaf() - Find the next leaf node under given node
+ * @root: An SKC root node
+ * @node: An SKC node which starts from.
+ *
+ * Search the next leaf node (which means the terminal key node) of @node
+ * under @root node. Return the next node or NULL if no next leaf node is
+ * found.
+ */
 struct skc_node *skc_node_find_next_leaf(struct skc_node *root,
 					 struct skc_node *node)
 {
@@ -197,6 +276,17 @@ struct skc_node *skc_node_find_next_leaf(struct skc_node *root,
 	return node;
 }
 
+/**
+ * skc_node_find_next_key_value() - Find the next key-value pair nodes
+ * @root: An SKC root node
+ * @leaf: A container pointer of SKC node which starts from.
+ *
+ * Search the next leaf node (which means the terminal key node) of *@leaf
+ * under @root node. Returns the value and update *@leaf if next leaf node
+ * is found, or NULL if no next leaf node is found.
+ * Note that this returns 0-length string if the key has no value, or
+ * the value of the first entry if the value is an array.
+ */
 const char *skc_node_find_next_key_value(struct skc_node *root,
 					 struct skc_node **leaf)
 {
@@ -508,7 +598,14 @@ static int skc_verify_tree(void)
 	return 0;
 }
 
-/* Setup SKC internal tree */
+/**
+ * skc_init() - Parse given SKC file and build SKC internal tree
+ * @buf: Structured kernel cmdline text
+ *
+ * This parses the structured kernel cmdline text in @buf. @buf must be a
+ * null terminated string and smaller than SKC_DATA_MAX.
+ * Return 0 if succeeded, or -errno if there is any error.
+ */
 int skc_init(char *buf)
 {
 	char *p, *q;
@@ -559,7 +656,11 @@ int skc_init(char *buf)
 	return skc_verify_tree();
 }
 
-/* Dump current skc */
+/**
+ * skc_debug_dump() - Dump current SKC node list
+ *
+ * Dump the current SKC node list on printk buffer for debug.
+ */
 void skc_debug_dump(void)
 {
 	int i;
