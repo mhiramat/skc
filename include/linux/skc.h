@@ -198,6 +198,5 @@ int skc_init(char *buf);
 
 /* Debug dump functions */
 void skc_debug_dump(void);
-void skc_show_tree(void);
 
 #endif
