@@ -486,20 +486,13 @@ static int skc_close_brace(char **k, char *n)
 
 static int skc_verify_tree(void)
 {
-	int i, last = 0;
+	int i;
 
 	for (i = 0; i < skc_node_num; i++) {
 		if (skc_nodes[i].next > skc_node_num) {
 			BUG_ON(skc_node_is_value(skc_nodes + i));
 			return skc_parse_error("No closing brace",
 				skc_node_get_data(skc_nodes + i));
-		} else if (skc_nodes[i].next == skc_node_num) {
-			if (WARN_ON(last)) {
-				printk("Previous last node = %d\n", last);
-				skc_dump();
-			}
-			last = i;
-			skc_nodes[i].next = 0;
 		}
 	}
 
