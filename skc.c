@@ -45,6 +45,9 @@ static int skc_parse_error(const char *msg, const char *p)
 
 struct skc_node *skc_root_node(void)
 {
+	if (unlikely(!skc_data))
+		return NULL;
+
 	return skc_nodes;
 }
 
@@ -139,6 +142,9 @@ int skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
 {
 	int ret = 0;
 
+	if (!node)
+		return -EINVAL;
+
 	if (skc_node_is_value(node))
 		node = skc_node_get_parent(node);
 
@@ -166,6 +172,9 @@ bool skc_node_is_leaf(struct skc_node *node)
 struct skc_node *skc_node_find_next_leaf(struct skc_node *root,
 					 struct skc_node *node)
 {
+	if (unlikely(!skc_data))
+		return NULL;
+
 	if (!node) {	/* first try */
 		node = root;
 		if (!node)
