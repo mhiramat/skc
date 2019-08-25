@@ -35,6 +35,11 @@ struct skc_node * __init skc_node_get_child(struct skc_node *node);
 struct skc_node * __init skc_node_get_next(struct skc_node *node);
 const char * __init skc_node_get_data(struct skc_node *node);
 
+/* For destractive data operation */
+int __init skc_data_save(void);
+char * __init skc_node_get_data_destractive(struct skc_node *node);
+void __init skc_data_restore(void);
+
 /**
  * skc_node_is_value() - Test the node is a value node
  * @node: An SKC node.

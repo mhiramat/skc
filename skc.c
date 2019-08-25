@@ -10,6 +10,7 @@
 #include <linux/ctype.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
+#include <linux/memblock.h>
 #include <linux/printk.h>
 #include <linux/skc.h>
 #include <linux/string.h>
@@ -26,6 +27,7 @@
 static struct skc_node skc_nodes[SKC_NODE_MAX] __initdata;
 static int skc_node_num __initdata;
 static char *skc_data __initdata;
+static char *skc_backup_data __initdata;
 static size_t skc_data_size __initdata;
 static struct skc_node *last_parent __initdata;
 
@@ -116,12 +118,61 @@ struct skc_node * __init skc_node_get_next(struct skc_node *node)
  */
 const char * __init skc_node_get_data(struct skc_node *node)
 {
+	return skc_node_get_data_destractive(node);
+}
+
+/**
+ * skc_data_save() - Backup parsed SKC data
+ *
+ * Backup parsed SKC data and make a copy on skc_data. Before using
+ * skc_node_get_destracitive_data(), you have to call this. Afterwards
+ * skc_data_restore() must be called.
+ */
+int __init skc_data_save(void)
+{
+	if (!skc_data)
+		return 0;
+
+	if (!skc_backup_data) {
+		skc_backup_data = skc_data;
+		skc_data = memblock_alloc(skc_data_size, SMP_CACHE_BYTES);
+		if (!skc_data) {
+			skc_data = skc_backup_data;
+			return -ENOMEM;
+		}
+		memcpy(skc_data, skc_backup_data, skc_data_size);
+	}
+
+	return 0;
+}
+
+/**
+ * skc_node_get_data_destractive() - Get the modifiable data of SKC node
+ * @node: An SKC node.
+ *
+ * Return the data (which is always a null terminated string) of @node.
+ * If the node has invalid data, warn and return NULL.
+ * Note that returned data can be destractive (but do not overflow).
+ */
+char * __init skc_node_get_data_destractive(struct skc_node *node)
+{
 	int offset = node->data & ~SKC_VALUE;
 
 	if (WARN_ON(offset >= skc_data_size))
 		return NULL;
 
 	return skc_data + offset;
+}
+
+/**
+ * skc_data_restore() - Restore backup data
+ *
+ * Restore backup data saved by skc_data_save().
+ */
+void __init skc_data_restore(void)
+{
+	if (skc_backup_data)
+		memcpy(skc_data, skc_backup_data, skc_data_size);
 }
 
 static bool __init
@@ -637,7 +688,7 @@ int __init skc_init(char *buf)
 		return -ERANGE;
 
 	skc_data = buf;
-	skc_data_size = ret;
+	skc_data_size = ret + 1;
 
 	p = buf;
 	do {
