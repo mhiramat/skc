@@ -1,5 +1,5 @@
 # SKC
-Structured Kernel Cmdline Userland tool
+Supplemental Kernel Cmdline Userland tool
 
 Masami Hiramatsu <mhiramat@kernel.org>
 
