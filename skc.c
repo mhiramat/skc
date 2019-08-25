@@ -637,7 +637,7 @@ int __init skc_init(char *buf)
 		return -ERANGE;
 
 	skc_data = buf;
-	skc_data_size = ret;
+	skc_data_size = ret + 1;
 
 	p = buf;
 	do {
