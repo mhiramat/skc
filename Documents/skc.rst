@@ -32,7 +32,7 @@ used for checking the key exists or not (like a boolean).
 Tree Structure
 --------------
 
-SKC allows user to fold partially same word keys by brace. For example,
+SKC allows user to merge partially same word keys by brace. For example,
 
 foo.bar.baz = value1;
 foo.bar.qux.quux = value2;
@@ -43,6 +43,27 @@ foo.bar {
    baz = value1;
    qux.quux = value2;
 }
+
+In both style, same key words are automatically merged when parsing it
+at boot time. So you can append similar trees or key-values.
+
+/proc/sup_cmdline
+=================
+
+/proc/sup_cmdline is the user-space interface of supplemental kernel
+cmdline. Unlike /proc/cmdline, this file shows the key-value style list.
+Each key-value pair is shown in each line with following style.
+
+KEY[.WORDS...] = "[VALUE]"[,"VALUE2"...];
+
+How to Pass at Boot
+===================
+
+SKC file is passed to kernel via memory, so the boot loader must support
+loading SKC file. After loading the SKC file on memory, the boot loader
+has to add "skc=PADDR,SIZE" argument to kernel cmdline, where the PADDR
+is the physical address of the memory block and SIZE is the size of SKC
+file.
 
 SKC APIs
 ========
@@ -65,23 +86,4 @@ Functions and structures
 
 .. kernel-doc:: include/linux/skc.h
 .. kernel-doc:: lib/skc.c
-
-
-/proc/sup_cmdline
-=================
-
-/proc/sup_cmdline is the user-space interface of supplemental kernel
-cmdline. Unlike /proc/cmdline, this file shows the key-value style list.
-Each key-value pair is shown in each line with following style.
-
-KEY[.WORDS...] = "[VALUE]"[,"VALUE2"...];
-
-How to Pass at Boot
-===================
-
-SKC file is passed to kernel via memory, so the boot loader must support
-loading SKC file. After loading the SKC file on memory, the boot loader
-has to add "skc=PADDR,SIZE" argument to kernel cmdline, where the PADDR
-is the physical address of the memory block and SIZE is the size of SKC
-file.
 
