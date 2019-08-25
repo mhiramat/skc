@@ -40,7 +40,7 @@ static int __init skc_parse_error(const char *msg, const char *p)
 			col = pos - i;
 		}
 	}
-	pr_err("Parse error at line %d, col %d: %s\n", line + 1, col, msg);
+	pr_err("Parse error at line %d, col %d: %s\n", line + 1, col + 1, msg);
 	return -EINVAL;
 }
 
