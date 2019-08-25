@@ -215,32 +215,43 @@ skc_node_find_value(struct skc_node *parent, const char *key,
  * @size: The size of the @buf.
  *
  * Compose the full-length key of the @node into @buf. Returns the total
- * length of the key stored in @buf. Or returns -EINVAL if @node or @buf is
- *  NULL, returns -E2BIG if buffer is smaller than the key.
+ * length of the key stored in @buf. Or returns -EINVAL if @node is NULL,
+ * and -ERANGE if the key depth is deeper than max depth.
  */
 int __init skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
 {
-	int ret = 0;
+	u16 keys[SKC_DEPTH_MAX];
+	int depth = 0, ret = 0, total = 0;
 
-	if (!node || !buf)
+	if (!node)
 		return -EINVAL;
 
 	if (skc_node_is_value(node))
 		node = skc_node_get_parent(node);
 
-	if (skc_node_get_parent(node)) {
-		ret = skc_node_compose_key(skc_node_get_parent(node),
-					   buf, size);
-		if (ret >= size)
-			return -E2BIG;
+	while (node) {
+		keys[depth++] = skc_node_index(node);
+		if (depth == SKC_DEPTH_MAX)
+			return -ERANGE;
+		node = skc_node_get_parent(node);
+	}
+
+	while (--depth >= 0) {
+		node = skc_nodes + keys[depth];
+		ret = snprintf(buf, size, "%s%s", skc_node_get_data(node),
+			       depth ? "." : "");
 		if (ret < 0)
 			return ret;
-
-		buf += ret;
-		size -= ret;
+		if (ret > size) {
+			size = 0;
+		} else {
+			size -= ret;
+			buf += ret;
+		}
+		total += ret;
 	}
-	return snprintf(buf, size, "%s%s", ret == 0 ? "" : ".",
-			skc_node_get_data(node)) + ret;
+
+	return total;
 }
 
 /**

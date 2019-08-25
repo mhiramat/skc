@@ -25,6 +25,7 @@ struct skc_node {
 
 #define SKC_NODE_MAX	512
 #define SKC_KEYLEN_MAX	256
+#define SKC_DEPTH_MAX	16
 
 /* Node tree access raw APIs */
 struct skc_node * __init skc_root_node(void);
