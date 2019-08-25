@@ -45,10 +45,10 @@ static int __init skc_parse_error(const char *msg, const char *p)
 }
 
 /**
- * skc_root_node() - Get the root node of structured kernel cmdline
+ * skc_root_node() - Get the root node of supplemental kernel cmdline
  *
- * Return the address of root node of structured kernel cmdline. If the
- * structured kernel cmdline is not initiized, return NULL.
+ * Return the address of root node of supplemental kernel cmdline. If the
+ * supplemental kernel cmdline is not initiized, return NULL.
  */
 struct skc_node * __init skc_root_node(void)
 {
@@ -618,9 +618,9 @@ static int __init skc_verify_tree(void)
 
 /**
  * skc_init() - Parse given SKC file and build SKC internal tree
- * @buf: Structured kernel cmdline text
+ * @buf: Supplemental kernel cmdline text
  *
- * This parses the structured kernel cmdline text in @buf. @buf must be a
+ * This parses the supplemental kernel cmdline text in @buf. @buf must be a
  * null terminated string and smaller than SKC_DATA_MAX.
  * Return 0 if succeeded, or -errno if there is any error.
  */
