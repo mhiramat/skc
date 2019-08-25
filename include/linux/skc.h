@@ -87,7 +87,7 @@ struct skc_node * __init skc_node_find_child(struct skc_node *parent,
 
 const char * __init skc_node_find_value(struct skc_node *parent,
 					const char *key,
-					struct skc_node **value);
+					struct skc_node **vnode);
 
 struct skc_node * __init skc_node_find_next_leaf(struct skc_node *root,
 						 struct skc_node *leaf);
@@ -98,17 +98,17 @@ const char * __init skc_node_find_next_key_value(struct skc_node *root,
 /**
  * skc_find_value() - Find a value which matches the key
  * @key: Search key
- * @value: A container pointer of SKC value node.
+ * @vnode: A container pointer of SKC value node.
  *
  * Search a value whose key matches @key from whole of SKC tree and return
- * the value if found. Found value node is stored in *@value.
- * Note that this can return 0-length string and store NULL in *@value for
+ * the value if found. Found value node is stored in *@vnode.
+ * Note that this can return 0-length string and store NULL in *@vnode for
  * key-only (non-value) entry.
  */
 static inline const char * __init
-skc_find_value(const char *key, struct skc_node **value)
+skc_find_value(const char *key, struct skc_node **vnode)
 {
-	return skc_node_find_value(NULL, key, value);
+	return skc_node_find_value(NULL, key, vnode);
 }
 
 /**
@@ -172,26 +172,26 @@ static inline struct skc_node * __init skc_find_node(const char *key)
 /**
  * skc_node_for_each_key_value() - Iterate key-value pairs under a node
  * @node: An SKC node.
- * @key: Iterated key node
+ * @knode: Iterated key node
  * @value: Iterated value string
  *
  * Iterate key-value pairs under @node. Each key node and value string are
- * stored in @key and @value respectively.
+ * stored in @knode and @value respectively.
  */
-#define skc_node_for_each_key_value(node, key, value)			\
-	for (key = NULL, value = skc_node_find_next_key_value(node, &key); \
-	     key != NULL; value = skc_node_find_next_key_value(node, &key))
+#define skc_node_for_each_key_value(node, knode, value)			\
+	for (knode = NULL, value = skc_node_find_next_key_value(node, &knode);\
+	     knode != NULL; value = skc_node_find_next_key_value(node, &knode))
 
 /**
  * skc_for_each_key_value() - Iterate key-value pairs
- * @key: Iterated key node
+ * @knode: Iterated key node
  * @value: Iterated value string
  *
  * Iterate key-value pairs in whole SKC tree. Each key node and value string
- * are stored in @key and @value respectively.
+ * are stored in @knode and @value respectively.
  */
-#define skc_for_each_key_value(key, value)				\
-	skc_node_for_each_key_value(NULL, key, value)
+#define skc_for_each_key_value(knode, value)				\
+	skc_node_for_each_key_value(NULL, knode, value)
 
 /* Compose complete key */
 int __init skc_node_compose_key(struct skc_node *node, char *buf, size_t size);

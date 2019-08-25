@@ -178,20 +178,20 @@ skc_node_find_child(struct skc_node *parent, const char *key)
  * skc_node_find_value() - Find a value node which matches given key
  * @parent: An SKC node.
  * @key: A key string.
- * @value: A container pointer of found SKC node.
+ * @vnode: A container pointer of found SKC node.
  *
  * Search a value node under @parent whose (parent) key node matches @key,
- * store it in @value, and returns the value string.
+ * store it in *@vnode, and returns the value string.
  * The @key can contain several words jointed with '.'. If @parent is NULL,
  * this searches the node from whole tree. Return the value string if a
  * matched key found, return NULL if no node is matched.
- * Note that this returns 0-length string and stores NULL in @value if the
+ * Note that this returns 0-length string and stores NULL in *@vnode if the
  * key has no value. And also it will return the value of the first entry if
  * the value is an array.
  */
 const char * __init
 skc_node_find_value(struct skc_node *parent, const char *key,
-		    struct skc_node **value)
+		    struct skc_node **vnode)
 {
 	struct skc_node *node = skc_node_find_child(parent, key);
 
@@ -202,8 +202,8 @@ skc_node_find_value(struct skc_node *parent, const char *key,
 	if (node && !skc_node_is_value(node))
 		return NULL;
 
-	if (value)
-		*value = node;
+	if (vnode)
+		*vnode = node;
 
 	return node ? skc_node_get_data(node) : "";
 }
