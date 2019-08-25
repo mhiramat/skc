@@ -260,8 +260,8 @@ int __init skc_node_compose_key(struct skc_node *node, char *buf, size_t size)
  * @node: An SKC node which starts from.
  *
  * Search the next leaf node (which means the terminal key node) of @node
- * under @root node. Return the next node or NULL if no next leaf node is
- * found.
+ * under @root node (including @root node itself).
+ * Return the next node or NULL if next leaf node is not found.
  */
 struct skc_node * __init skc_node_find_next_leaf(struct skc_node *root,
 						 struct skc_node *node)
@@ -269,10 +269,12 @@ struct skc_node * __init skc_node_find_next_leaf(struct skc_node *root,
 	if (unlikely(!skc_data))
 		return NULL;
 
-	if (!node) {	/* first try */
+	if (!node) {	/* First try */
 		node = root;
 		if (!node)
 			node = skc_nodes;
+	} else if (node == root) {	/* @root is a leaf, no child node. */
+		return NULL;
 	} else {
 		while (!node->next) {
 			node = skc_node_get_parent(node);
