@@ -273,9 +273,10 @@ struct skc_node * __init skc_node_find_next_leaf(struct skc_node *root,
 		node = root;
 		if (!node)
 			node = skc_nodes;
-	} else if (node == root) {	/* @root is a leaf, no child node. */
-		return NULL;
 	} else {
+		if (node == root)	/* @root was a leaf, no child node. */
+			return NULL;
+
 		while (!node->next) {
 			node = skc_node_get_parent(node);
 			if (node == root)
@@ -333,7 +334,8 @@ static struct skc_node * __init skc_add_node(char *data, u32 flag)
 	node = &skc_nodes[skc_node_num++];
 	offset = data - skc_data;
 	node->data = (u16)offset;
-	BUG_ON(offset != node->data);
+	if (WARN_ON(offset >= SKC_DATA_MAX))
+		return NULL;
 	node->data |= flag;
 	node->child = 0;
 	node->next = 0;
@@ -607,7 +609,6 @@ static int __init skc_verify_tree(void)
 
 	for (i = 0; i < skc_node_num; i++) {
 		if (skc_nodes[i].next > skc_node_num) {
-			BUG_ON(skc_node_is_value(skc_nodes + i));
 			return skc_parse_error("No closing brace",
 				skc_node_get_data(skc_nodes + i));
 		}

@@ -162,7 +162,7 @@ static inline struct skc_node * __init skc_find_node(const char *key)
  * Note that even if the found key node has only one value (not array)
  * this executes block once. Hoever, if the found key node has no value
  * (key-only node), this does nothing. So don't use this for testing the
- * key-value pair existance.
+ * key-value pair existence.
  */
 #define skc_node_for_each_array_value(node, key, anode, value)		\
 	for (value = skc_node_find_value(node, key, &anode); value != NULL; \
