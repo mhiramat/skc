@@ -2,7 +2,7 @@
 #ifndef _LINUX_SKC_H
 #define _LINUX_SKC_H
 /*
- * Structured Kernel Command Line
+ * Supplementary Kernel Command Line
  * Copyright (C) 2019 Linaro Ltd.
  * Author: Masami Hiramatsu <mhiramat@kernel.org>
  */
@@ -20,7 +20,7 @@ struct skc_node {
 
 #define SKC_KEY		0
 #define SKC_VALUE	(1 << 15)
-/* Maximum size of structured kernel cmdline is 32KB - 1 */
+/* Maximum size of supplementary kernel cmdline is 32KB - 1 */
 #define SKC_DATA_MAX	(SKC_VALUE - 1)
 
 #define SKC_NODE_MAX	512

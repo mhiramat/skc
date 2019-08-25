@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Structure Kernel Commandline
+ * Supplementary Kernel Commandline
  * Masami Hiramatsu <mhiramat@kernel.org>
  */
 
@@ -15,9 +15,10 @@
 #include <linux/string.h>
 
 /*
- * Structured Kernel Commandline (SKC) is given as an ascii text on memory.
+ * Supplementary Kernel Commandline (SKC) is given as tree-structured ascii
+ * text of key-value pairs on memory.
  * skc_parse() parses the text to build a simple tree. Each tree node is
- * simply whether key or value. A key node may have a next key node or/and
+ * simply a key word or a value. A key node may have a next key node or/and
  * a child node (both key and value). A value node may have a next value
  * node (for array).
  */
