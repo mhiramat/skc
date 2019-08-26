@@ -47,6 +47,12 @@ foo.bar {
 In both style, same key words are automatically merged when parsing it
 at boot time. So you can append similar trees or key-values.
 
+SKC File Limitation
+===================
+
+Currently the maximum SKC file size is 32KB and the total key-words (not
+key-value entries) must be under 512 nodes.
+
 /proc/sup_cmdline
 =================
 
@@ -71,11 +77,39 @@ SKC APIs
 User can query or loop on key-value pairs, also it is possible to find
 a root (prefix) key node and find key-values under that node.
 
-Typical usage is to find key-value pair by skc_find_value() directly,
-iterate all keys by skc_for_each_key_value() and compair fixed key
-string with the key string composed by skc_node_compose_key(), or
-find a root node by skc_find_node() and iterates all key-values under
-that node by skc_node_for_each_key_value().
+If you have a key string, you can query the value directly with the key
+using skc_find_value(). If you want to know what keys exist in the SKC
+tree, you can use skc_for_each_key_value() to iterate key-value pairs.
+Note that you need to use skc_array_for_each_value() for accessing
+each arraies value, e.g.
+
+::
+
+ vnode = NULL;
+ skc_find_value("key.word", &vnode);
+ if (vnode && skc_node_is_array(vnode))
+    skc_array_for_each_value(vnode, value) {
+      printk("%s ", value);
+    }
+
+If you want to focus on keys which has a prefix string, you can use
+skc_find_node() to find a node which prefix key words, and iterate
+keys under the prefix node with skc_node_for_each_key_value().
+
+But the most typical usage is to get the named value under prefix
+or get the named array under prefix as below.
+
+::
+
+ root = skc_find_node("key.prefix");
+ value = skc_node_find_value(root, "option", &vnode);
+ ...
+ skc_node_for_each_array_value(root, "array-option", value, anode) {
+    ...
+ }
+
+This accesses a value of "key.prefix.option" and an array of
+"key.prefix.array-option".
 
 Locking is not needed, since after initialized, SKC becomes readonly.
 All data and keys must be copied if you need to modify it.
