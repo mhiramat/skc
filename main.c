@@ -66,6 +66,42 @@ static void skc_show_tree(void)
 	}
 }
 
+#define PAGE_SIZE	4096
+
+/* Read the skc from stdin */
+int read_skc_input(char **buf)
+{
+	int size = PAGE_SIZE;
+	int ret, total = 0;
+
+	*buf = malloc(size);
+
+	while (!feof(stdin) && !ferror(stdin)) {
+		ret = fread(*buf + total, 1, size - total, stdin);
+		total += ret;
+		if (size - total == 0) {
+			size += PAGE_SIZE;
+			*buf = realloc(*buf, size);
+		}
+	}
+
+	if (ferror(stdin)) {
+		ret = -errno;
+		goto error;
+	} else if (total == 0) {
+		ret = -EINVAL;
+		goto error;
+	}
+
+	(*buf)[total] = '\0';
+
+	return total;
+error:
+	free(*buf);
+	*buf = NULL;
+	return ret;
+}
+
 /* Return the read size or -errno */
 int load_skc_file(const char *path, char **buf)
 {
@@ -95,7 +131,7 @@ int load_skc_file(const char *path, char **buf)
 
 int usage(void)
 {
-	printf("Usage: skc [-q KEY|-p PREFIX|-t|-d] skc-file \n");
+	printf("Usage: skc [-q KEY|-p PREFIX|-t|-d] [skc-file] \n");
 	return -1;
 }
 
@@ -125,13 +161,13 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (optind >= argc) {
-		printf("Error: No .skc file is specified after options.\n");
-		return -2;
+	if (optind >= argc || strcmp(argv[optind], "-")) {
+		path = "(stdin)";
+		ret = read_skc_input(&buf);
+	} else {
+		path = argv[optind];
+		ret = load_skc_file(path, &buf);
 	}
-
-	path = argv[optind];
-	ret = load_skc_file(path, &buf);
 	if (ret < 0) {
 		printf("Failed to load %s : %d\n", path, ret);
 		return ret;
