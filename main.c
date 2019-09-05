@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 	char *buf;
 	int ret, opt, mode = 'l';
 
-	while ((opt = getopt(argc, argv, "p:q:td")) != -1) {
+	while ((opt = getopt(argc, argv, "hp:q:td")) != -1) {
 		switch (opt) {
 		case 'p':
 			prefix = strdup(optarg);
@@ -156,6 +156,7 @@ int main(int argc, char **argv)
 		case 'd':
 			mode = opt;
 			break;
+		case 'h':
 		default:
 			return usage();
 		}
