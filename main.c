@@ -95,7 +95,7 @@ int load_skc_file(const char *path, char **buf)
 
 int usage(void)
 {
-	printf("Usage: skc [-q KEY|-t|-d] skc-file \n");
+	printf("Usage: skc [-q KEY|-p PREFIX|-t|-d] skc-file \n");
 	return -1;
 }
 
