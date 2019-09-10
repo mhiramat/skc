@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (optind >= argc || strcmp(argv[optind], "-")) {
+	if (optind >= argc || !strcmp(argv[optind], "-")) {
 		path = "(stdin)";
 		ret = read_skc_input(&buf);
 	} else {
