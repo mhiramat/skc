@@ -643,8 +643,13 @@ int __init skc_init(char *buf)
 	p = buf;
 	do {
 		q = strpbrk(p, "{}=;");
-		if (!q)
+		if (!q) {
+			p = skip_spaces(p);
+			if (*p != '\0')
+				ret = skc_parse_error("No delimiter", p);
 			break;
+		}
+
 		c = *q;
 		*q++ = '\0';
 		switch (c) {
@@ -661,18 +666,17 @@ int __init skc_init(char *buf)
 			ret = skc_close_brace(&p, q);
 			break;
 		}
-	} while (ret == 0);
+	} while (!ret);
 
-	if (ret < 0)
-		return ret;
+	if (!ret)
+		ret = skc_verify_tree();
 
-	if (!q) {
-		p = skip_spaces(p);
-		if (*p != '\0')
-			return skc_parse_error("No delimiter", p);
+	if (ret < 0) {
+		skc_data = NULL;
+		skc_data_size = 0;
 	}
 
-	return skc_verify_tree();
+	return ret;
 }
 
 /**
