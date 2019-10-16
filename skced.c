@@ -24,7 +24,7 @@ static int skc_show_array(struct skc_node *node)
 	return i;
 }
 
-static void skc_show_tree(void)
+static void skc_show_compact_tree(void)
 {
 	struct skc_node *node, *cnode;
 	int depth = 0, i;
@@ -34,10 +34,15 @@ static void skc_show_tree(void)
 		for (i = 0; i < depth; i++)
 			printk("\t");
 		cnode = skc_node_get_child(node);
+		while (cnode && skc_node_is_key(cnode) && !cnode->next) {
+			printk("%s.", skc_node_get_data(node));
+			node = cnode;
+			cnode = skc_node_get_child(node);
+		}
 		if (cnode && skc_node_is_key(cnode)) {
 			printk("%s {\n", skc_node_get_data(node));
-			node = cnode;
 			depth++;
+			node = cnode;
 			continue;
 		} else if (cnode && skc_node_is_value(cnode)) {
 			printk("%s = ", skc_node_get_data(node));
@@ -56,7 +61,9 @@ static void skc_show_tree(void)
 		while (!node->next) {
 			node = skc_node_get_parent(node);
 			if (!node)
-				return ;
+				return;
+			if (!skc_node_get_child(node)->next)
+				continue;
 			depth--;
 			for (i = 0; i < depth; i++)
 				printk("\t");
@@ -182,7 +189,7 @@ int show_skc(const char *path)
 	if (ret < 0)
 		printf("Failed to load SKC from initrd: %d\n", ret);
 	else
-		skc_show_tree();
+		skc_show_compact_tree();
 
 	close(fd);
 	free(buf);
