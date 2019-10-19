@@ -1,5 +1,6 @@
-#ifndef _LINUX_PRINTK_H
-#define _LINUX_PRINTK_H
+/* SPDX-License-Identifier: GPL-2.0 */
+#ifndef _SKC_LINUX_PRINTK_H
+#define _SKC_LINUX_PRINTK_H
 
 #include <stdio.h>
 

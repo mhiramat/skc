@@ -1,5 +1,6 @@
-#ifndef _LINUX_KERNEL_H
-#define _LINUX_KERNEL_H
+/* SPDX-License-Identifier: GPL-2.0 */
+#ifndef _SKC_LINUX_KERNEL_H
+#define _SKC_LINUX_KERNEL_H
 
 #include <stdlib.h>
 #include <stdbool.h>

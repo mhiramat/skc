@@ -1,8 +1,10 @@
-#ifndef _LINUX_STRING_H
-#define _LINUX_STRING_H
+/* SPDX-License-Identifier: GPL-2.0 */
+#ifndef _SKC_LINUX_STRING_H
+#define _SKC_LINUX_STRING_H
 
 #include <string.h>
 
+/* Copied from lib/string.c */
 static inline char *skip_spaces(const char *str)
 {
 	while (isspace(*str))
