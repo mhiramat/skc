@@ -421,12 +421,12 @@ static int __init __skc_parse_value(char **__v, char **__n)
 			return skc_parse_error("No closing quotation", v);
 		*p++ = '\0';
 		p = skip_spaces(p);
-		if (*p != ',' && *p != ';')
+		if (!strchr(",;\n", *p))
 			return skc_parse_error("No delimiter for value", v);
 		c = *p;
 		*p++ = '\0';
 	} else {
-		p = strpbrk(v, ",;");
+		p = strpbrk(v, ",;\n");
 		if (!p)
 			return skc_parse_error("No delimiter for value", v);
 		c = *p;
@@ -454,7 +454,7 @@ static int __init skc_parse_array(char **__v)
 		if (!node)
 			return -ENOMEM;
 		*__v = next;
-	} while (c != ';');
+	} while (c == ',');
 	node->next = 0;
 
 	return 0;
@@ -642,7 +642,7 @@ int __init skc_init(char *buf)
 
 	p = buf;
 	do {
-		q = strpbrk(p, "{}=;");
+		q = strpbrk(p, "{}=;\n");
 		if (!q) {
 			p = skip_spaces(p);
 			if (*p != '\0')
@@ -660,6 +660,7 @@ int __init skc_init(char *buf)
 			ret = skc_open_brace(&p, q);
 			break;
 		case ';':
+		case '\n':
 			ret = skc_parse_key(&p, q);
 			break;
 		case '}':
