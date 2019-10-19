@@ -396,10 +396,10 @@ static inline __init bool skc_valid_keyword(char *key)
 	return *key == '\0';
 }
 
-static inline __init char *find_ending_quote(char *p)
+static inline __init char *find_ending_quotes(char *p, int quotes)
 {
 	do {
-		p = strchr(p + 1, '"');
+		p = strchr(p + 1, quotes);
 		if (!p)
 			break;
 	} while (*(p - 1) == '\\');
@@ -414,11 +414,12 @@ static int __init __skc_parse_value(char **__v, char **__n)
 	int c;
 
 	v = skip_spaces(v);
-	if (*v == '"') {
+	if (*v == '"' || *v == '\'') {
+		c = *v;
 		v++;
-		p = find_ending_quote(v);
+		p = find_ending_quotes(v, c);
 		if (!p)
-			return skc_parse_error("No closing quotation", v);
+			return skc_parse_error("No closing quotes", v);
 		*p++ = '\0';
 		p = skip_spaces(p);
 		if (!strchr(",;\n", *p))
