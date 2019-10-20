@@ -31,16 +31,9 @@ static struct skc_node *last_parent __initdata;
 
 static int __init skc_parse_error(const char *msg, const char *p)
 {
-	int line = 0, col = 0;
-	int i, pos = p - skc_data;
+	int pos = p - skc_data;
 
-	for (i = 0; i < pos; i++) {
-		if (skc_data[i] == '\n') {
-			line++;
-			col = pos - i;
-		}
-	}
-	pr_err("Parse error at line %d, col %d: %s\n", line + 1, col + 1, msg);
+	pr_err("Parse error at pos %d: %s\n", pos, msg);
 	return -EINVAL;
 }
 
