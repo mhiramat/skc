@@ -400,6 +400,19 @@ static inline __init char *find_ending_quotes(char *p, int quotes)
 	return p;
 }
 
+static char *skip_comment(char *p)
+{
+	char *ret;
+
+	ret = strchr(p, '\n');
+	if (!ret)
+		ret = p + strlen(p);
+	else
+		ret++;
+
+	return ret;
+}
+
 /* Return delimiter or error, no node added */
 static int __init __skc_parse_value(char **__v, char **__n)
 {
@@ -407,6 +420,10 @@ static int __init __skc_parse_value(char **__v, char **__n)
 	int c;
 
 	v = skip_spaces(v);
+	while (*v == '#') {
+		v = skip_comment(v);
+		v = skip_spaces(v);
+	}
 	if (*v == '"' || *v == '\'') {
 		c = *v;
 		v++;
@@ -415,20 +432,25 @@ static int __init __skc_parse_value(char **__v, char **__n)
 			return skc_parse_error("No closing quotes", v);
 		*p++ = '\0';
 		p = skip_spaces(p);
-		if (!strchr(",;\n", *p))
+		if (!strchr(",;\n#", *p))
 			return skc_parse_error("No delimiter for value", v);
 		c = *p;
 		*p++ = '\0';
 	} else {
-		p = strpbrk(v, ",;\n");
+		p = strpbrk(v, ",;\n#");
 		if (!p)
 			return skc_parse_error("No delimiter for value", v);
 		c = *p;
 		*p++ = '\0';
 		v = strim(v);
 	}
+
+	if (c == '#') {
+		*__n = skip_comment(p);
+		c = **__n;
+	} else
+		*__n = p;
 	*__v = v;
-	*__n = p;
 
 	return c;
 }
@@ -636,7 +658,7 @@ int __init skc_init(char *buf)
 
 	p = buf;
 	do {
-		q = strpbrk(p, "{}=;\n");
+		q = strpbrk(p, "{}=;\n#");
 		if (!q) {
 			p = skip_spaces(p);
 			if (*p != '\0')
@@ -653,6 +675,9 @@ int __init skc_init(char *buf)
 		case '{':
 			ret = skc_open_brace(&p, q);
 			break;
+		case '#':
+			q = skip_comment(q);
+			/* fall through */
 		case ';':
 		case '\n':
 			ret = skc_parse_key(&p, q);
