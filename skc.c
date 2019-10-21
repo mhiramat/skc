@@ -413,6 +413,31 @@ static char *skip_comment(char *p)
 	return ret;
 }
 
+static int __init __skc_open_brace(void)
+{
+	/* Mark the last key as open brace */
+	last_parent->next = SKC_NODE_MAX;
+
+	return 0;
+}
+
+static int __init __skc_close_brace(char *p)
+{
+	struct skc_node *node;
+
+	if (!last_parent || last_parent->next != SKC_NODE_MAX)
+		return skc_parse_error("Unexpected closing brace", p);
+
+	node = last_parent;
+	node->next = 0;
+	do {
+		node = skc_node_get_parent(node);
+	} while (node && node->next != SKC_NODE_MAX);
+	last_parent = node;
+
+	return 0;
+}
+
 /* Return delimiter or error, no node added */
 static int __init __skc_parse_value(char **__v, char **__n)
 {
@@ -432,12 +457,12 @@ static int __init __skc_parse_value(char **__v, char **__n)
 			return skc_parse_error("No closing quotes", v);
 		*p++ = '\0';
 		p = skip_spaces(p);
-		if (!strchr(",;\n#", *p))
+		if (!strchr(",;\n#}", *p))
 			return skc_parse_error("No delimiter for value", v);
 		c = *p;
 		*p++ = '\0';
 	} else {
-		p = strpbrk(v, ",;\n#");
+		p = strpbrk(v, ",;\n#}");
 		if (!p)
 			return skc_parse_error("No delimiter for value", v);
 		c = *p;
@@ -446,10 +471,10 @@ static int __init __skc_parse_value(char **__v, char **__n)
 	}
 
 	if (c == '#') {
-		*__n = skip_comment(p);
-		c = **__n;
-	} else
-		*__n = p;
+		p = skip_comment(p);
+		c = *p;
+	}
+	*__n = p;
 	*__v = v;
 
 	return c;
@@ -473,7 +498,7 @@ static int __init skc_parse_array(char **__v)
 	} while (c == ',');
 	node->next = 0;
 
-	return 0;
+	return c;
 }
 
 static inline __init
@@ -550,12 +575,18 @@ static int __init skc_parse_kv(char **k, char *v)
 		return -ENOMEM;
 
 	if (c == ',') {	/* Array */
-		ret = skc_parse_array(&next);
-		if (ret < 0)
-			return ret;
+		c = skc_parse_array(&next);
+		if (c < 0)
+			return c;
 	}
 
 	last_parent = prev_parent;
+
+	if (c == '}') {
+		ret = __skc_close_brace(next - 1);
+		if (ret < 0)
+			return ret;
+	}
 
 	*k = next;
 
@@ -574,7 +605,6 @@ static int __init skc_parse_key(char **k, char *n)
 			return ret;
 		last_parent = prev_parent;
 	}
-
 	*k = n;
 
 	return 0;
@@ -587,36 +617,21 @@ static int __init skc_open_brace(char **k, char *n)
 	ret = __skc_parse_keys(*k);
 	if (ret)
 		return ret;
-
-	/* Mark the last key as open brace */
-	last_parent->next = SKC_NODE_MAX;
-
 	*k = n;
 
-	return 0;
+	return __skc_open_brace();
 }
 
 static int __init skc_close_brace(char **k, char *n)
 {
-	struct skc_node *node;
+	int ret;
 
-	*k = strim(*k);
-	if (**k != '\0')
-		return skc_parse_error("Unexpected key, maybe forgot ;?", *k);
+	ret = skc_parse_key(k, n);
+	if (ret)
+		return ret;
+	/* k is updated in skc_parse_key() */
 
-	if (!last_parent || last_parent->next != SKC_NODE_MAX)
-		return skc_parse_error("Unexpected closing brace", *k);
-
-	node = last_parent;
-	node->next = 0;
-	do {
-		node = skc_node_get_parent(node);
-	} while (node && node->next != SKC_NODE_MAX);
-	last_parent = node;
-
-	*k = n;
-
-	return 0;
+	return __skc_close_brace(n - 1);
 }
 
 static int __init skc_verify_tree(void)
